@@ -5,7 +5,8 @@ export interface FileNode {
   type: 'file' | 'directory';
   size: number;
   fileType?: string;
-  lastModified?: number;
+  createdAt?: number;      // Creation timestamp for orbital radius
+  lastModified?: number;   // Last modified timestamp for angular position
   children?: FileNode[];
 }
 
@@ -68,4 +69,31 @@ export function calculateBrightness(lastModified?: number): number {
   if (!lastModified) return 0.7;
   const age = (Date.now() - lastModified) / (1000 * 60 * 60 * 24 * 30); // months
   return Math.max(0.3, 1 - age * 0.1);
+}
+
+// Helper: calculate equal-spaced angle with sorted index
+// Items are sorted by lastModified, then placed with equal spacing starting from 12 o'clock
+export function calculateEqualSpacedAngle(sortedIndex: number, totalItems: number): number {
+  if (totalItems <= 0) return 0;
+  // Start from 12 o'clock (-π/2) and go clockwise
+  return -Math.PI / 2 + (sortedIndex / totalItems) * Math.PI * 2;
+}
+
+// Helper: calculate orbital radius based on creation order
+// Newer items (by creation) get inner orbits, older get outer orbits
+export function calculateOrbitRadiusByOrder(creationOrderIndex: number, totalItems: number, baseRadius: number): number {
+  if (totalItems <= 1) return baseRadius;
+  // Range from 60% to 140% of base radius based on creation order
+  const factor = 0.6 + (creationOrderIndex / (totalItems - 1)) * 0.8;
+  return baseRadius * factor;
+}
+
+// Helper: sort children by last modified (newest first) and return sorted array with indices
+export function sortByLastModified<T extends { lastModified?: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
+}
+
+// Helper: sort children by creation date (newest first) and return sorted array
+export function sortByCreatedAt<T extends { createdAt?: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }

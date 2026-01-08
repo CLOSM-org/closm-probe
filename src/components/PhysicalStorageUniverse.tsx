@@ -8,49 +8,67 @@ import {
   typeColors,
   formatSize,
   formatTimeAgo,
+  calculateEqualSpacedAngle,
+  calculateOrbitRadiusByOrder,
+  sortByLastModified,
+  sortByCreatedAt,
 } from './universe/types';
+
+// Time constants for sample data
+const DAY = 86400000;
+const WEEK = DAY * 7;
+const MONTH = DAY * 30;
 
 // Sample file system data (will be replaced with Google Drive API)
 const sampleFileSystem: FileNode = {
   name: 'root',
   type: 'directory',
   size: 0,
+  createdAt: Date.now() - MONTH * 12,
   children: [
     {
       name: 'プロジェクト',
       type: 'directory',
       size: 0,
+      createdAt: Date.now() - MONTH * 6,
+      lastModified: Date.now() - DAY,
       children: [
         {
           name: 'WebApp',
           type: 'directory',
           size: 0,
+          createdAt: Date.now() - MONTH * 3,
+          lastModified: Date.now() - DAY,
           children: [
-            { name: 'index.html', type: 'file', fileType: 'code', size: 15000, lastModified: Date.now() - 86400000 },
-            { name: 'style.css', type: 'file', fileType: 'code', size: 8000, lastModified: Date.now() - 172800000 },
-            { name: 'app.js', type: 'file', fileType: 'code', size: 45000, lastModified: Date.now() - 3600000 },
-            { name: 'bundle.min.js', type: 'file', fileType: 'code', size: 250000, lastModified: Date.now() - 604800000 },
+            { name: 'index.html', type: 'file', fileType: 'code', size: 15000, createdAt: Date.now() - MONTH * 3, lastModified: Date.now() - DAY },
+            { name: 'style.css', type: 'file', fileType: 'code', size: 8000, createdAt: Date.now() - MONTH * 3, lastModified: Date.now() - DAY * 2 },
+            { name: 'app.js', type: 'file', fileType: 'code', size: 45000, createdAt: Date.now() - MONTH * 2, lastModified: Date.now() - 3600000 },
+            { name: 'bundle.min.js', type: 'file', fileType: 'code', size: 250000, createdAt: Date.now() - MONTH, lastModified: Date.now() - WEEK },
           ]
         },
         {
           name: 'デザイン',
           type: 'directory',
           size: 0,
+          createdAt: Date.now() - MONTH * 6,
+          lastModified: Date.now() - DAY,
           children: [
-            { name: 'mockup_v1.fig', type: 'file', fileType: 'design', size: 5200000, lastModified: Date.now() - 259200000 },
-            { name: 'mockup_v2.fig', type: 'file', fileType: 'design', size: 8100000, lastModified: Date.now() - 86400000 },
-            { name: 'icons.svg', type: 'file', fileType: 'image', size: 120000, lastModified: Date.now() - 432000000 },
-            { name: 'hero_image.png', type: 'file', fileType: 'image', size: 3500000, lastModified: Date.now() - 518400000 },
+            { name: 'mockup_v1.fig', type: 'file', fileType: 'design', size: 5200000, createdAt: Date.now() - MONTH * 6, lastModified: Date.now() - MONTH * 2 },
+            { name: 'mockup_v2.fig', type: 'file', fileType: 'design', size: 8100000, createdAt: Date.now() - MONTH, lastModified: Date.now() - DAY },
+            { name: 'icons.svg', type: 'file', fileType: 'image', size: 120000, createdAt: Date.now() - MONTH * 4, lastModified: Date.now() - MONTH },
+            { name: 'hero_image.png', type: 'file', fileType: 'image', size: 3500000, createdAt: Date.now() - MONTH * 5, lastModified: Date.now() - MONTH * 2 },
           ]
         },
         {
           name: 'ドキュメント',
           type: 'directory',
           size: 0,
+          createdAt: Date.now() - MONTH * 6,
+          lastModified: Date.now() - DAY,
           children: [
-            { name: '企画書.pdf', type: 'file', fileType: 'pdf', size: 2800000, lastModified: Date.now() - 1209600000 },
-            { name: 'API仕様.md', type: 'file', fileType: 'doc', size: 35000, lastModified: Date.now() - 172800000 },
-            { name: '議事録.txt', type: 'file', fileType: 'text', size: 12000, lastModified: Date.now() - 43200000 },
+            { name: '企画書.pdf', type: 'file', fileType: 'pdf', size: 2800000, createdAt: Date.now() - MONTH * 6, lastModified: Date.now() - MONTH * 2 },
+            { name: 'API仕様.md', type: 'file', fileType: 'doc', size: 35000, createdAt: Date.now() - MONTH * 2, lastModified: Date.now() - DAY * 2 },
+            { name: '議事録.txt', type: 'file', fileType: 'text', size: 12000, createdAt: Date.now() - WEEK, lastModified: Date.now() - DAY / 2 },
           ]
         }
       ]
@@ -59,25 +77,31 @@ const sampleFileSystem: FileNode = {
       name: 'メディア',
       type: 'directory',
       size: 0,
+      createdAt: Date.now() - MONTH * 10,
+      lastModified: Date.now() - WEEK,
       children: [
         {
           name: '写真',
           type: 'directory',
           size: 0,
+          createdAt: Date.now() - MONTH * 10,
+          lastModified: Date.now() - MONTH,
           children: [
-            { name: 'vacation_001.jpg', type: 'file', fileType: 'image', size: 4200000, lastModified: Date.now() - 2592000000 },
-            { name: 'vacation_002.jpg', type: 'file', fileType: 'image', size: 3800000, lastModified: Date.now() - 2592000000 },
-            { name: 'vacation_003.jpg', type: 'file', fileType: 'image', size: 4500000, lastModified: Date.now() - 2592000000 },
-            { name: 'screenshot.png', type: 'file', fileType: 'image', size: 850000, lastModified: Date.now() - 604800000 },
+            { name: 'vacation_001.jpg', type: 'file', fileType: 'image', size: 4200000, createdAt: Date.now() - MONTH * 10, lastModified: Date.now() - MONTH * 10 },
+            { name: 'vacation_002.jpg', type: 'file', fileType: 'image', size: 3800000, createdAt: Date.now() - MONTH * 10, lastModified: Date.now() - MONTH * 10 },
+            { name: 'vacation_003.jpg', type: 'file', fileType: 'image', size: 4500000, createdAt: Date.now() - MONTH * 10, lastModified: Date.now() - MONTH * 10 },
+            { name: 'screenshot.png', type: 'file', fileType: 'image', size: 850000, createdAt: Date.now() - WEEK, lastModified: Date.now() - WEEK },
           ]
         },
         {
           name: '動画',
           type: 'directory',
           size: 0,
+          createdAt: Date.now() - MONTH * 8,
+          lastModified: Date.now() - MONTH * 2,
           children: [
-            { name: 'demo_recording.mp4', type: 'file', fileType: 'video', size: 125000000, lastModified: Date.now() - 1814400000 },
-            { name: 'tutorial.mp4', type: 'file', fileType: 'video', size: 89000000, lastModified: Date.now() - 3628800000 },
+            { name: 'demo_recording.mp4', type: 'file', fileType: 'video', size: 125000000, createdAt: Date.now() - MONTH * 2, lastModified: Date.now() - MONTH * 2 },
+            { name: 'tutorial.mp4', type: 'file', fileType: 'video', size: 89000000, createdAt: Date.now() - MONTH * 8, lastModified: Date.now() - MONTH * 6 },
           ]
         }
       ]
@@ -86,9 +110,11 @@ const sampleFileSystem: FileNode = {
       name: 'バックアップ',
       type: 'directory',
       size: 0,
+      createdAt: Date.now() - MONTH * 12,
+      lastModified: Date.now() - WEEK,
       children: [
-        { name: 'db_backup_2024.sql', type: 'file', fileType: 'data', size: 45000000, lastModified: Date.now() - 604800000 },
-        { name: 'config_backup.zip', type: 'file', fileType: 'archive', size: 12000000, lastModified: Date.now() - 1209600000 },
+        { name: 'db_backup_2024.sql', type: 'file', fileType: 'data', size: 45000000, createdAt: Date.now() - WEEK, lastModified: Date.now() - WEEK },
+        { name: 'config_backup.zip', type: 'file', fileType: 'archive', size: 12000000, createdAt: Date.now() - MONTH * 12, lastModified: Date.now() - MONTH * 2 },
       ]
     }
   ]
@@ -116,7 +142,7 @@ function findNodeByPath(root: FileNode, path: string): FileNode | null {
 
   for (let i = 1; i < parts.length; i++) { // Skip root name
     if (!current || !current.children) return null;
-    const found = current.children.find(c => c.name === parts[i]);
+    const found: FileNode | undefined = current.children.find(c => c.name === parts[i]);
     if (!found) return null;
     current = found;
   }
@@ -124,11 +150,15 @@ function findNodeByPath(root: FileNode, path: string): FileNode | null {
   return current;
 }
 
-// Flatten tree with 3D positions - Solar System style (2 levels, flat plane)
+// Flatten tree with 3D positions - Solar System style with sorted equal-spacing
+// θ (angle) = equal spacing, sorted by last modified (newest at 12 o'clock)
+// r (radius) = sorted by creation date (newer = inner orbit)
 function flattenWithPositions(
   node: FileNode,
   depth = 0,
-  angle = 0,
+  sortedAngleIndex = 0,
+  sortedRadiusIndex = 0,
+  siblingCount = 1,
   parentPos = { x: 0, y: 0, z: 0 },
   path = '',
   maxDepth = 2
@@ -153,22 +183,41 @@ function flattenWithPositions(
       orbitRadius: 0
     });
 
-    if (node.children) {
-      const childCount = node.children.length;
-      node.children.forEach((child, i) => {
-        const childAngle = (i / childCount) * Math.PI * 2;
-        items.push(...flattenWithPositions(child, depth + 1, childAngle, { x: 0, y: 0, z: 0 }, currentPath, maxDepth));
+    if (node.children && node.children.length > 0) {
+      // Sort children by last modified for angle placement
+      const sortedByModified = sortByLastModified(node.children);
+      // Sort children by creation date for radius placement
+      const sortedByCreation = sortByCreatedAt(node.children);
+
+      sortedByModified.forEach((child, angleIndex) => {
+        // Find this child's position in the creation-sorted array for radius
+        const radiusIndex = sortedByCreation.findIndex(c => c.name === child.name);
+        items.push(...flattenWithPositions(
+          child,
+          depth + 1,
+          angleIndex,
+          radiusIndex,
+          sortedByModified.length,
+          { x: 0, y: 0, z: 0 },
+          currentPath,
+          maxDepth
+        ));
       });
     }
     return items;
   }
 
-  // Orbital radii - flat plane (Y = 0)
-  const orbitRadius = depth === 1 ? 4 : 1.5; // Planets at 4, moons at 1.5 from parent
+  // Calculate orbital radius based on creation order (newer = inner)
+  const baseRadius = depth === 1 ? 4 : 1.5;
+  const orbitRadius = calculateOrbitRadiusByOrder(sortedRadiusIndex, siblingCount, baseRadius);
 
+  // Calculate angle based on sorted position (equal spacing)
+  const angle = calculateEqualSpacedAngle(sortedAngleIndex, siblingCount);
+
+  // Convert polar to cartesian (flat orbital plane, Y = 0)
   const x = parentPos.x + Math.cos(angle) * orbitRadius;
   const z = parentPos.z + Math.sin(angle) * orbitRadius;
-  const y = 0; // Flat orbital plane
+  const y = 0;
 
   items.push({
     ...node,
@@ -184,10 +233,22 @@ function flattenWithPositions(
 
   // Only recurse if we haven't hit maxDepth
   if (node.children && node.children.length > 0 && depth < maxDepth) {
-    const childCount = node.children.length;
-    node.children.forEach((child, i) => {
-      const childAngle = (i / childCount) * Math.PI * 2; // Full circle around parent
-      items.push(...flattenWithPositions(child, depth + 1, childAngle, { x, y, z }, currentPath, maxDepth));
+    // Sort children for placement
+    const sortedByModified = sortByLastModified(node.children);
+    const sortedByCreation = sortByCreatedAt(node.children);
+
+    sortedByModified.forEach((child, angleIndex) => {
+      const radiusIndex = sortedByCreation.findIndex(c => c.name === child.name);
+      items.push(...flattenWithPositions(
+        child,
+        depth + 1,
+        angleIndex,
+        radiusIndex,
+        sortedByModified.length,
+        { x, y, z },
+        currentPath,
+        maxDepth
+      ));
     });
   }
 

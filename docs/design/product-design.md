@@ -103,9 +103,82 @@ When drilling down:
 
 ## 3. Visual Encoding System
 
-Three dimensions encode information about each celestial body.
+Multiple dimensions encode information using **polar coordinates** for richer expression.
 
-### 3.1 Size Encoding (Capacity)
+### 3.1 Polar Coordinate Mapping
+
+| Polar Element | Attribute | Expression |
+|---------------|-----------|------------|
+| **r (radius)** | Creation date | New = close to sun, Old = outer orbit |
+| **θ (angle)** | Last modified (sorted) | Equal spacing, sorted by recency (newest at 12 o'clock) |
+| **Size** | File capacity | Larger file = larger body |
+| **Color** | File type | Code=cyan, Image=orange, etc. |
+| **Brightness** | Last modified | Recent = bright, old = dim |
+
+### 3.2 Equal-Spaced Sorted Placement
+
+Children are placed with **equal angular spacing**, sorted by last modified date:
+
+```javascript
+// Sort children by last modified (newest first)
+const sortedChildren = [...children].sort((a, b) =>
+  (b.lastModified || 0) - (a.lastModified || 0)
+);
+
+// Place with equal spacing, starting from 12 o'clock (-π/2)
+sortedChildren.forEach((child, index) => {
+  const angle = -Math.PI / 2 + (index / sortedChildren.length) * Math.PI * 2;
+  // ... position calculation
+});
+```
+
+This ensures:
+- Beautiful equal-spaced arrangement
+- Recently updated items start at top (12 o'clock direction)
+- Clockwise progression toward older items
+
+### 3.3 Orbital Radius by Creation Date
+
+```javascript
+// Sort by creation date, place newer items in inner orbits
+const sortedByCreation = [...children].sort((a, b) =>
+  (b.createdAt || 0) - (a.createdAt || 0)
+);
+
+// Assign orbit bands based on creation order
+const orbitIndex = sortedByCreation.findIndex(c => c.id === child.id);
+const orbitRadius = baseRadius * (0.6 + (orbitIndex / sortedByCreation.length) * 0.8);
+```
+
+### 3.4 Asteroid Belt Model
+
+When a directory contains many small files, they are abstracted as an **asteroid belt** rather than individual nodes:
+
+```
+        ☉ Sun
+       /|\
+      🪐 🪐 🪐  Planets (directories)
+       |
+      ~~~  Asteroid Belt (small files consolidated)
+       |
+      🛰️ 🛰️  Large Satellites (significant files only)
+```
+
+**Classification Rules:**
+
+| Category | Criteria | Display |
+|----------|----------|---------|
+| Planet | Directory | Individual sphere |
+| Large Satellite | File > threshold size | Individual sphere |
+| Asteroid | File ≤ threshold | Consolidated into belt ring |
+
+**Asteroid Belt Behavior:**
+- Displayed as a dotted ring around parent
+- Shows count badge (e.g., "+12 files")
+- Click to expand into individual view
+- Reduces visual clutter while preserving information
+
+### 3.5 Size Encoding (Capacity)
 
 Node size represents storage capacity using logarithmic scale:
 
@@ -114,7 +187,7 @@ Node size represents storage capacity using logarithmic scale:
 | Planet (directory) | 15px | log10(size) × 3 |
 | Satellite (file) | 8px | log10(size) × 2 |
 
-### 3.2 Color Encoding (File Type)
+### 3.6 Color Encoding (File Type)
 
 | File Type | Color | Hex Code |
 |-----------|-------|----------|
@@ -128,7 +201,7 @@ Node size represents storage capacity using logarithmic scale:
 | Archive | Gray | #6b7280 |
 | Directory | Violet | #8b5cf6 |
 
-### 3.3 Brightness Encoding (Time/Recency)
+### 3.7 Brightness Encoding (Time/Recency)
 
 | Last Modified | Brightness | Visual Effect |
 |---------------|------------|---------------|
@@ -139,7 +212,7 @@ Node size represents storage capacity using logarithmic scale:
 | Within 1 year | 40% | Dim |
 | Over 1 year | 25% | Minimum + grayed out |
 
-### 3.4 UI Color Palette
+### 3.8 UI Color Palette
 
 | Usage | Color | Hex |
 |-------|-------|-----|

@@ -46,6 +46,48 @@ const project = (x: number, y: number, z: number, rotation: { x: number; y: numb
 
 ---
 
+## Polar Coordinate System
+
+Celestial bodies are positioned using polar coordinates mapped to temporal attributes.
+
+### Orbital Radius (Creation Date)
+
+Newer files orbit closer to the sun, older files drift outward:
+
+```typescript
+const calculateOrbitRadius = (createdAt: number, baseRadius: number) => {
+  const ageInDays = (Date.now() - createdAt) / (1000 * 60 * 60 * 24);
+  const ageFactor = Math.log10(Math.max(1, ageInDays)) / 3; // 0-1 range for 1-1000 days
+  return baseRadius * (0.5 + ageFactor * 1.5); // 50% to 200% of base radius
+};
+```
+
+### Angular Position (Last Modified)
+
+Recently updated files cluster in the "hot zone" (top of view):
+
+```typescript
+const calculateAngle = (lastModified: number) => {
+  const ageInDays = (Date.now() - lastModified) / (1000 * 60 * 60 * 24);
+  const normalizedAge = Math.min(1, ageInDays / 365); // 0-1 over a year
+  return -Math.PI / 2 + normalizedAge * Math.PI * 2; // Start from top, spread clockwise
+};
+```
+
+### Converting Polar to Cartesian
+
+```typescript
+const polarToCartesian = (radius: number, angle: number, parentPos: {x: number, z: number}) => {
+  return {
+    x: parentPos.x + Math.cos(angle) * radius,
+    z: parentPos.z + Math.sin(angle) * radius,
+    y: 0 // Flat orbital plane
+  };
+};
+```
+
+---
+
 ## Celestial Body Rendering
 
 ### Size Calculation (Logarithmic Scale)

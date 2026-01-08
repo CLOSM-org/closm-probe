@@ -27,7 +27,7 @@ function Scene({
   onHover,
   onDrillDown,
   cameraRef,
-}: UniverseCanvasProps & { cameraRef: React.RefObject<CameraControllerRef> }) {
+}: UniverseCanvasProps & { cameraRef: React.RefObject<CameraControllerRef | null> }) {
   const handleDoubleClick = (item: PositionedItem) => {
     // For directories with children, drill down
     if (item.type === 'directory' && item.children && item.children.length > 0 && onDrillDown) {
