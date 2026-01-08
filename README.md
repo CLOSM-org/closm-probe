@@ -15,6 +15,7 @@ CLOSM Probe transforms traditional file management into an intuitive 3D space ex
 - **Sun** = Current directory (center of your view)
 - **Planets** = Subdirectories (orbiting the sun)
 - **Satellites** = Files (orbiting their parent planets)
+- **Asteroid Belts** = Small files consolidated into rings
 
 ### Why Space Metaphor?
 
@@ -31,11 +32,18 @@ CLOSM Probe transforms traditional file management into an intuitive 3D space ex
 
 ### Current (MVP)
 
-- 3D solar system visualization
+- 3D solar system visualization with React Three Fiber
 - Drill-down navigation (double-click to explore)
-- Visual encoding: size, color (file type), brightness (recency)
+- Visual encoding:
+  - **Size** = File/folder capacity
+  - **Color** = File type (code, design, image, video, etc.)
+  - **Brightness** = Recency (bright = recently modified)
+  - **Orbital radius** = Creation date (newer = inner orbit)
+  - **Angular position** = Last modified (newest at 12 o'clock)
+- Asteroid belt model for small files (<100KB)
 - Smooth rotation and zoom
 - Selection and detail panel
+- Post-processing effects (bloom, vignette)
 
 ### Planned
 
@@ -108,7 +116,13 @@ closm-probe/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   └── components/             # React components
+│       ├── PhysicalStorageUniverse.tsx  # Main visualizer
 │       └── universe/           # 3D visualization components
+│           ├── controls/       # Camera controls
+│           ├── effects/        # Star field, orbit lines
+│           ├── nodes/          # Planet, Satellite, AsteroidBelt
+│           ├── postprocessing/ # Bloom, vignette effects
+│           └── types.ts        # Shared types & helpers
 ├── docs/
 │   ├── design/                 # Design specifications
 │   └── specifications/         # Technical specifications

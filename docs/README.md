@@ -49,9 +49,12 @@ The product design document is organized around the **Physical Space Metaphor** 
 | Directory | Planet |
 | File | Satellite |
 | Subdirectory | Moon |
+| Small files (<100KB) | Asteroid belt |
 | File size | Body size |
 | File type | Body color |
 | Recency | Brightness |
+| Creation date | Orbital radius |
+| Last modified | Angular position |
 
 ---
 
