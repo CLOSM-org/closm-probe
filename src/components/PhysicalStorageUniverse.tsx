@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { UniverseCanvas } from './universe/UniverseCanvas';
 import {
   FileNode,
@@ -109,18 +109,40 @@ function calculateSizes(node: FileNode): number {
   return total;
 }
 
-// Flatten tree with 3D positions
+// Find node by path
+function findNodeByPath(root: FileNode, path: string): FileNode | null {
+  const parts = path.split('/').filter(Boolean);
+  let current: FileNode | null = root;
+
+  for (let i = 1; i < parts.length; i++) { // Skip root name
+    if (!current || !current.children) return null;
+    const found = current.children.find(c => c.name === parts[i]);
+    if (!found) return null;
+    current = found;
+  }
+
+  return current;
+}
+
+// Flatten tree with 3D positions - Solar System style (2 levels, flat plane)
 function flattenWithPositions(
   node: FileNode,
   depth = 0,
   angle = 0,
   parentPos = { x: 0, y: 0, z: 0 },
-  path = ''
+  path = '',
+  maxDepth = 2
 ): PositionedItem[] {
   const items: PositionedItem[] = [];
   const currentPath = path ? `${path}/${node.name}` : node.name;
 
+  // Stop at maxDepth
+  if (depth > maxDepth) {
+    return items;
+  }
+
   if (depth === 0) {
+    // Sun (center)
     items.push({
       ...node,
       path: currentPath,
@@ -135,18 +157,18 @@ function flattenWithPositions(
       const childCount = node.children.length;
       node.children.forEach((child, i) => {
         const childAngle = (i / childCount) * Math.PI * 2;
-        items.push(...flattenWithPositions(child, depth + 1, childAngle, { x: 0, y: 0, z: 0 }, currentPath));
+        items.push(...flattenWithPositions(child, depth + 1, childAngle, { x: 0, y: 0, z: 0 }, currentPath, maxDepth));
       });
     }
     return items;
   }
 
-  const baseRadius = 2 + depth * 1.8;
-  const orbitRadius = baseRadius;
+  // Orbital radii - flat plane (Y = 0)
+  const orbitRadius = depth === 1 ? 4 : 1.5; // Planets at 4, moons at 1.5 from parent
 
   const x = parentPos.x + Math.cos(angle) * orbitRadius;
   const z = parentPos.z + Math.sin(angle) * orbitRadius;
-  const y = parentPos.y + (depth - 1) * 0.5;
+  const y = 0; // Flat orbital plane
 
   items.push({
     ...node,
@@ -160,11 +182,12 @@ function flattenWithPositions(
     parentPos
   });
 
-  if (node.children && node.children.length > 0) {
+  // Only recurse if we haven't hit maxDepth
+  if (node.children && node.children.length > 0 && depth < maxDepth) {
     const childCount = node.children.length;
     node.children.forEach((child, i) => {
-      const childAngle = angle + ((i - (childCount - 1) / 2) * 0.5);
-      items.push(...flattenWithPositions(child, depth + 1, childAngle, { x, y, z }, currentPath));
+      const childAngle = (i / childCount) * Math.PI * 2; // Full circle around parent
+      items.push(...flattenWithPositions(child, depth + 1, childAngle, { x, y, z }, currentPath, maxDepth));
     });
   }
 
@@ -188,10 +211,44 @@ export default function PhysicalStorageUniverse() {
   const [selectedItem, setSelectedItem] = useState<PositionedItem | null>(null);
   const [hoveredItem, setHoveredItem] = useState<PositionedItem | null>(null);
 
-  const items = useMemo(() => flattenWithPositions(sampleFileSystem), []);
-  const totalSize = sampleFileSystem.size;
+  // Navigation state for drill-down
+  const [currentRoot, setCurrentRoot] = useState<FileNode>(sampleFileSystem);
+  const [navigationPath, setNavigationPath] = useState<string[]>(['root']);
 
-  const breadcrumbs = selectedItem?.path.split('/').filter(Boolean) || [];
+  // Generate items from current root
+  const items = useMemo(() => flattenWithPositions(currentRoot), [currentRoot]);
+  const totalSize = sampleFileSystem.size;
+  const currentSize = currentRoot.size;
+
+  // Drill-down handler
+  const handleDrillDown = useCallback((item: PositionedItem) => {
+    if (item.type === 'directory' && item.children && item.children.length > 0) {
+      const node = findNodeByPath(sampleFileSystem, item.path);
+      if (node) {
+        setCurrentRoot(node);
+        setNavigationPath(item.path.split('/').filter(Boolean));
+        setSelectedItem(null);
+      }
+    }
+  }, []);
+
+  // Navigate to specific level in breadcrumb
+  const navigateToLevel = useCallback((index: number) => {
+    if (index === 0) {
+      setCurrentRoot(sampleFileSystem);
+      setNavigationPath(['root']);
+    } else {
+      const targetPath = navigationPath.slice(0, index + 1).join('/');
+      const node = findNodeByPath(sampleFileSystem, targetPath);
+      if (node) {
+        setCurrentRoot(node);
+        setNavigationPath(navigationPath.slice(0, index + 1));
+      }
+    }
+    setSelectedItem(null);
+  }, [navigationPath]);
+
+  const selectedBreadcrumbs = selectedItem?.path.split('/').filter(Boolean) || [];
 
   return (
     <div style={{
@@ -215,8 +272,46 @@ export default function PhysicalStorageUniverse() {
             Storage Universe
           </h1>
           <p style={{ color: '#888', fontSize: '14px' }}>
-            ストレージを宇宙空間として可視化 - ドラッグで回転 - スクロールでズーム - ダブルクリックでフォーカス
+            ストレージを宇宙空間として可視化 - ドラッグで回転 - スクロールでズーム - ダブルクリックで中に入る
           </p>
+        </div>
+
+        {/* Navigation Breadcrumb */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '16px',
+          padding: '12px 16px',
+          background: 'rgba(255,255,255,0.03)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{ fontSize: '12px', color: '#666', marginRight: '8px' }}>現在地:</span>
+          {navigationPath.map((name, i) => (
+            <span key={i} style={{ display: 'flex', alignItems: 'center' }}>
+              {i > 0 && <span style={{ color: '#444', margin: '0 4px' }}>/</span>}
+              <button
+                onClick={() => navigateToLevel(i)}
+                style={{
+                  background: i === navigationPath.length - 1 ? 'rgba(168, 85, 247, 0.2)' : 'transparent',
+                  border: 'none',
+                  color: i === navigationPath.length - 1 ? '#a855f7' : '#888',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: i === navigationPath.length - 1 ? 'bold' : 'normal',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.1)'}
+                onMouseOut={(e) => e.currentTarget.style.background = i === navigationPath.length - 1 ? 'rgba(168, 85, 247, 0.2)' : 'transparent'}
+              >
+                {name === 'root' ? '🌟 ルート' : `📁 ${name}`}
+              </button>
+            </span>
+          ))}
         </div>
 
         {/* Stats */}
@@ -232,8 +327,8 @@ export default function PhysicalStorageUniverse() {
             borderRadius: '12px',
             padding: '16px'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{formatSize(totalSize)}</div>
-            <div style={{ fontSize: '12px', color: '#888' }}>総容量</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{formatSize(currentSize)}</div>
+            <div style={{ fontSize: '12px', color: '#888' }}>現在のフォルダ</div>
           </div>
           <div style={{
             background: 'rgba(59, 130, 246, 0.1)',
@@ -265,6 +360,7 @@ export default function PhysicalStorageUniverse() {
               hoveredItem={hoveredItem}
               onSelect={setSelectedItem}
               onHover={setHoveredItem}
+              onDrillDown={handleDrillDown}
             />
           </div>
 
@@ -286,10 +382,10 @@ export default function PhysicalStorageUniverse() {
                   flexWrap: 'wrap',
                   gap: '4px'
                 }}>
-                  {breadcrumbs.map((crumb, i) => (
+                  {selectedBreadcrumbs.map((crumb, i) => (
                     <span key={i}>
                       {i > 0 && <span style={{ margin: '0 4px' }}>/</span>}
-                      <span style={{ color: i === breadcrumbs.length - 1 ? '#a855f7' : '#888' }}>
+                      <span style={{ color: i === selectedBreadcrumbs.length - 1 ? '#a855f7' : '#888' }}>
                         {crumb}
                       </span>
                     </span>
@@ -327,6 +423,27 @@ export default function PhysicalStorageUniverse() {
                     </div>
                   </div>
                 </div>
+
+                {/* Drill-down button for directories */}
+                {selectedItem.type === 'directory' && selectedItem.children && selectedItem.children.length > 0 && (
+                  <button
+                    onClick={() => handleDrillDown(selectedItem)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: 'linear-gradient(90deg, #a855f7, #3b82f6)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      marginBottom: '16px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    🚀 このフォルダに入る
+                  </button>
+                )}
 
                 {/* Details */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -370,19 +487,6 @@ export default function PhysicalStorageUniverse() {
                       </span>
                     </div>
                   )}
-
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '10px',
-                    background: 'rgba(255,255,255,0.03)',
-                    borderRadius: '8px'
-                  }}>
-                    <span style={{ color: '#888', fontSize: '13px' }}>階層</span>
-                    <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
-                      {selectedItem.depth === 0 ? 'ルート' : `レベル ${selectedItem.depth}`}
-                    </span>
-                  </div>
                 </div>
 
                 {/* Progress bar */}
@@ -466,7 +570,7 @@ export default function PhysicalStorageUniverse() {
           <span>ドラッグ: 回転</span>
           <span>スクロール: ズーム</span>
           <span>クリック: 選択</span>
-          <span>ダブルクリック: フォーカス</span>
+          <span>ダブルクリック: 中に入る</span>
         </div>
       </div>
     </div>

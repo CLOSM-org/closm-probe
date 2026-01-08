@@ -16,6 +16,7 @@ interface UniverseCanvasProps {
   hoveredItem: PositionedItem | null;
   onSelect: (item: PositionedItem | null) => void;
   onHover: (item: PositionedItem | null) => void;
+  onDrillDown?: (item: PositionedItem) => void;
 }
 
 function Scene({
@@ -24,10 +25,15 @@ function Scene({
   hoveredItem,
   onSelect,
   onHover,
+  onDrillDown,
   cameraRef,
 }: UniverseCanvasProps & { cameraRef: React.RefObject<CameraControllerRef> }) {
   const handleDoubleClick = (item: PositionedItem) => {
-    if (cameraRef.current) {
+    // For directories with children, drill down
+    if (item.type === 'directory' && item.children && item.children.length > 0 && onDrillDown) {
+      onDrillDown(item);
+    } else if (cameraRef.current) {
+      // For files or empty directories, just focus camera
       cameraRef.current.focusOn([item.x, item.y, item.z]);
     }
   };
@@ -85,6 +91,7 @@ export function UniverseCanvas({
   hoveredItem,
   onSelect,
   onHover,
+  onDrillDown,
 }: UniverseCanvasProps) {
   const cameraRef = useRef<CameraControllerRef>(null);
 
@@ -107,6 +114,7 @@ export function UniverseCanvas({
             hoveredItem={hoveredItem}
             onSelect={onSelect}
             onHover={onHover}
+            onDrillDown={onDrillDown}
             cameraRef={cameraRef}
           />
         </Suspense>

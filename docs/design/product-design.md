@@ -54,29 +54,45 @@ Provide a next-generation storage interface that transcends traditional hierarch
 
 ## 3. Physical Space Metaphor
 
-### 3.1 Basic Mapping
+### 3.1 Solar System Model
+
+The visualization follows a **solar system metaphor** with flat orbital planes:
 
 ```
-CLOSM Probe Universe Space
-│
-├── Directory = Planet
-│   ├── Size = capacity (log scale)
-│   ├── Ring = children exist
-│   └── Color = file type distribution
-│
-├── File = Satellite
-│   ├── Size = file size
-│   ├── Brightness = update frequency (recent = bright)
-│   └── Color = file type
-│
-├── Relationship = Edge / Gravity
-│   └── Semantically similar files placed nearby
-│
-└── Orbit = Hierarchy
-    └── Children orbit around parent
+        ☉ Sun (Current Root Directory)
+       /|\
+      / | \
+     🪐 🪐 🪐  Planets (1st level - directories/files)
+     |
+    /|\
+   🌙🌙🌙  Moons (2nd level - children of planets)
 ```
 
-### 3.2 File Type Colors
+**Key Principles:**
+- **2-Level Display**: Only show 2 levels from current "sun" for clarity
+- **Flat Orbital Plane**: All nodes on Y=0 (like real solar system)
+- **Drill-Down Navigation**: Double-click a planet to make it the new sun
+
+### 3.2 Basic Mapping
+
+| Element | Metaphor | Visual |
+|---------|----------|--------|
+| Current Root | Sun | Center, glowing |
+| 1st Level Directory | Planet | Orbits sun at radius 4 |
+| 2nd Level Items | Moon | Orbits parent planet at radius 1.5 |
+| File | Satellite | Smaller sphere, color by type |
+
+### 3.3 Navigation
+
+| Action | Result |
+|--------|--------|
+| Double-click directory | Drill down (directory becomes new sun) |
+| Breadcrumb click | Navigate back to that level |
+| Single click | Select and show details |
+| Drag | Rotate view |
+| Scroll | Zoom in/out |
+
+### 3.4 File Type Colors
 
 | Type | Color | Hex |
 |------|-------|-----|
@@ -90,7 +106,7 @@ CLOSM Probe Universe Space
 | archive | Gray | #6b7280 |
 | directory | Violet | #8b5cf6 |
 
-### 3.3 Time Axis Expression
+### 3.5 Time Axis Expression
 
 | Update Time | Visual Representation |
 |-------------|----------------------|
