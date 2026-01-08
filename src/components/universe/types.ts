@@ -21,6 +21,44 @@ export interface PositionedItem extends FileNode {
   parentPos?: { x: number; y: number; z: number };
 }
 
+// Asteroid belt: represents a group of small files consolidated into a ring
+export interface AsteroidBelt {
+  id: string;
+  parentPath: string;
+  parentPos: { x: number; y: number; z: number };
+  orbitRadius: number;
+  files: FileNode[];
+  count: number;
+  totalSize: number;
+}
+
+// Threshold for asteroid classification (files smaller than this become asteroids)
+export const ASTEROID_SIZE_THRESHOLD = 100000; // 100KB
+
+// Check if a file should be treated as an asteroid (small file)
+export function isAsteroid(node: FileNode): boolean {
+  return node.type === 'file' && node.size < ASTEROID_SIZE_THRESHOLD;
+}
+
+// Separate children into planets/satellites and asteroids
+export function classifyChildren(children: FileNode[]): {
+  significantItems: FileNode[];
+  asteroids: FileNode[];
+} {
+  const significantItems: FileNode[] = [];
+  const asteroids: FileNode[] = [];
+
+  children.forEach(child => {
+    if (child.type === 'directory' || !isAsteroid(child)) {
+      significantItems.push(child);
+    } else {
+      asteroids.push(child);
+    }
+  });
+
+  return { significantItems, asteroids };
+}
+
 // File type colors
 export const typeColors: Record<string, string> = {
   code: '#61dafb',

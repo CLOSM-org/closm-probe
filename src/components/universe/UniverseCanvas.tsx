@@ -1,17 +1,19 @@
 'use client';
 
-import { useRef, Suspense } from 'react';
+import { useRef, useState, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { CameraController, CameraControllerRef } from './controls/CameraController';
 import { StarField } from './effects/StarField';
 import { OrbitLines } from './effects/OrbitLines';
 import { DirectoryNode } from './nodes/DirectoryNode';
 import { FileNode } from './nodes/FileNode';
+import { AsteroidBeltRing } from './nodes/AsteroidBelt';
 import { Effects } from './postprocessing/Effects';
-import { PositionedItem } from './types';
+import { PositionedItem, AsteroidBelt } from './types';
 
 interface UniverseCanvasProps {
   items: PositionedItem[];
+  asteroidBelts: AsteroidBelt[];
   selectedItem: PositionedItem | null;
   hoveredItem: PositionedItem | null;
   onSelect: (item: PositionedItem | null) => void;
@@ -21,13 +23,22 @@ interface UniverseCanvasProps {
 
 function Scene({
   items,
+  asteroidBelts,
   selectedItem,
   hoveredItem,
   onSelect,
   onHover,
   onDrillDown,
   cameraRef,
-}: UniverseCanvasProps & { cameraRef: React.RefObject<CameraControllerRef | null> }) {
+  onBeltHover,
+  onBeltClick,
+  hoveredBeltId,
+}: UniverseCanvasProps & {
+  cameraRef: React.RefObject<CameraControllerRef | null>;
+  onBeltHover: (belt: AsteroidBelt | null) => void;
+  onBeltClick: (belt: AsteroidBelt) => void;
+  hoveredBeltId: string | null;
+}) {
   const handleDoubleClick = (item: PositionedItem) => {
     // For directories with children, drill down
     if (item.type === 'directory' && item.children && item.children.length > 0 && onDrillDown) {
@@ -79,6 +90,17 @@ function Scene({
         )
       )}
 
+      {/* Asteroid belts */}
+      {asteroidBelts.map(belt => (
+        <AsteroidBeltRing
+          key={belt.id}
+          belt={belt}
+          isHovered={hoveredBeltId === belt.id}
+          onHover={onBeltHover}
+          onClick={onBeltClick}
+        />
+      ))}
+
       {/* Post-processing effects */}
       <Effects />
     </>
@@ -87,6 +109,7 @@ function Scene({
 
 export function UniverseCanvas({
   items,
+  asteroidBelts,
   selectedItem,
   hoveredItem,
   onSelect,
@@ -94,11 +117,22 @@ export function UniverseCanvas({
   onDrillDown,
 }: UniverseCanvasProps) {
   const cameraRef = useRef<CameraControllerRef>(null);
+  const [hoveredBeltId, setHoveredBeltId] = useState<string | null>(null);
 
   // Click on empty space deselects
   const handleCanvasClick = () => {
     // This is handled by node click stopPropagation
   };
+
+  // Asteroid belt handlers
+  const handleBeltHover = useCallback((belt: AsteroidBelt | null) => {
+    setHoveredBeltId(belt?.id || null);
+  }, []);
+
+  const handleBeltClick = useCallback((belt: AsteroidBelt) => {
+    // For now, just log the belt info - could expand to show detail panel
+    console.log('Asteroid belt clicked:', belt.count, 'files', belt.totalSize, 'bytes');
+  }, []);
 
   return (
     <div style={{ width: '100%', height: '500px', borderRadius: '16px', overflow: 'hidden' }}>
@@ -110,12 +144,16 @@ export function UniverseCanvas({
         <Suspense fallback={null}>
           <Scene
             items={items}
+            asteroidBelts={asteroidBelts}
             selectedItem={selectedItem}
             hoveredItem={hoveredItem}
             onSelect={onSelect}
             onHover={onHover}
             onDrillDown={onDrillDown}
             cameraRef={cameraRef}
+            onBeltHover={handleBeltHover}
+            onBeltClick={handleBeltClick}
+            hoveredBeltId={hoveredBeltId}
           />
         </Suspense>
       </Canvas>

@@ -5,6 +5,7 @@ import { UniverseCanvas } from './universe/UniverseCanvas';
 import {
   FileNode,
   PositionedItem,
+  AsteroidBelt,
   typeColors,
   formatSize,
   formatTimeAgo,
@@ -12,6 +13,7 @@ import {
   calculateOrbitRadiusByOrder,
   sortByLastModified,
   sortByCreatedAt,
+  classifyChildren,
 } from './universe/types';
 
 // Time constants for sample data
@@ -150,9 +152,16 @@ function findNodeByPath(root: FileNode, path: string): FileNode | null {
   return current;
 }
 
+// Result type for flatten function
+interface FlattenResult {
+  items: PositionedItem[];
+  asteroidBelts: AsteroidBelt[];
+}
+
 // Flatten tree with 3D positions - Solar System style with sorted equal-spacing
 // θ (angle) = equal spacing, sorted by last modified (newest at 12 o'clock)
 // r (radius) = sorted by creation date (newer = inner orbit)
+// Small files are collected into asteroid belts
 function flattenWithPositions(
   node: FileNode,
   depth = 0,
@@ -162,13 +171,14 @@ function flattenWithPositions(
   parentPos = { x: 0, y: 0, z: 0 },
   path = '',
   maxDepth = 2
-): PositionedItem[] {
+): FlattenResult {
   const items: PositionedItem[] = [];
+  const asteroidBelts: AsteroidBelt[] = [];
   const currentPath = path ? `${path}/${node.name}` : node.name;
 
   // Stop at maxDepth
   if (depth > maxDepth) {
-    return items;
+    return { items, asteroidBelts };
   }
 
   if (depth === 0) {
@@ -184,15 +194,29 @@ function flattenWithPositions(
     });
 
     if (node.children && node.children.length > 0) {
-      // Sort children by last modified for angle placement
-      const sortedByModified = sortByLastModified(node.children);
-      // Sort children by creation date for radius placement
-      const sortedByCreation = sortByCreatedAt(node.children);
+      // Classify children into significant items and asteroids
+      const { significantItems, asteroids } = classifyChildren(node.children);
+
+      // Create asteroid belt if there are asteroids
+      if (asteroids.length > 0) {
+        asteroidBelts.push({
+          id: `belt-${currentPath}`,
+          parentPath: currentPath,
+          parentPos: { x: 0, y: 0, z: 0 },
+          orbitRadius: 5.5, // Outer orbit for asteroid belt
+          files: asteroids,
+          count: asteroids.length,
+          totalSize: asteroids.reduce((sum, a) => sum + a.size, 0),
+        });
+      }
+
+      // Sort significant items for placement
+      const sortedByModified = sortByLastModified(significantItems);
+      const sortedByCreation = sortByCreatedAt(significantItems);
 
       sortedByModified.forEach((child, angleIndex) => {
-        // Find this child's position in the creation-sorted array for radius
         const radiusIndex = sortedByCreation.findIndex(c => c.name === child.name);
-        items.push(...flattenWithPositions(
+        const result = flattenWithPositions(
           child,
           depth + 1,
           angleIndex,
@@ -201,10 +225,12 @@ function flattenWithPositions(
           { x: 0, y: 0, z: 0 },
           currentPath,
           maxDepth
-        ));
+        );
+        items.push(...result.items);
+        asteroidBelts.push(...result.asteroidBelts);
       });
     }
-    return items;
+    return { items, asteroidBelts };
   }
 
   // Calculate orbital radius based on creation order (newer = inner)
@@ -233,13 +259,29 @@ function flattenWithPositions(
 
   // Only recurse if we haven't hit maxDepth
   if (node.children && node.children.length > 0 && depth < maxDepth) {
-    // Sort children for placement
-    const sortedByModified = sortByLastModified(node.children);
-    const sortedByCreation = sortByCreatedAt(node.children);
+    // Classify children
+    const { significantItems, asteroids } = classifyChildren(node.children);
+
+    // Create asteroid belt for this node's small files
+    if (asteroids.length > 0) {
+      asteroidBelts.push({
+        id: `belt-${currentPath}`,
+        parentPath: currentPath,
+        parentPos: { x, y, z },
+        orbitRadius: 2.0, // Outer orbit relative to parent
+        files: asteroids,
+        count: asteroids.length,
+        totalSize: asteroids.reduce((sum, a) => sum + a.size, 0),
+      });
+    }
+
+    // Sort significant items for placement
+    const sortedByModified = sortByLastModified(significantItems);
+    const sortedByCreation = sortByCreatedAt(significantItems);
 
     sortedByModified.forEach((child, angleIndex) => {
       const radiusIndex = sortedByCreation.findIndex(c => c.name === child.name);
-      items.push(...flattenWithPositions(
+      const result = flattenWithPositions(
         child,
         depth + 1,
         angleIndex,
@@ -248,11 +290,13 @@ function flattenWithPositions(
         { x, y, z },
         currentPath,
         maxDepth
-      ));
+      );
+      items.push(...result.items);
+      asteroidBelts.push(...result.asteroidBelts);
     });
   }
 
-  return items;
+  return { items, asteroidBelts };
 }
 
 // Initialize sizes
@@ -276,8 +320,8 @@ export default function PhysicalStorageUniverse() {
   const [currentRoot, setCurrentRoot] = useState<FileNode>(sampleFileSystem);
   const [navigationPath, setNavigationPath] = useState<string[]>(['root']);
 
-  // Generate items from current root
-  const items = useMemo(() => flattenWithPositions(currentRoot), [currentRoot]);
+  // Generate items and asteroid belts from current root
+  const { items, asteroidBelts } = useMemo(() => flattenWithPositions(currentRoot), [currentRoot]);
   const totalSize = sampleFileSystem.size;
   const currentSize = currentRoot.size;
 
@@ -417,6 +461,7 @@ export default function PhysicalStorageUniverse() {
           <div style={{ flex: '1 1 700px' }}>
             <UniverseCanvas
               items={items}
+              asteroidBelts={asteroidBelts}
               selectedItem={selectedItem}
               hoveredItem={hoveredItem}
               onSelect={setSelectedItem}
