@@ -1,36 +1,135 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CLOSM Probe
+
+**3D Storage Universe Explorer** - Visualize your files as an explorable solar system.
+
+![Status](https://img.shields.io/badge/status-MVP-blue)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+## Overview
+
+CLOSM Probe transforms traditional file management into an intuitive 3D space exploration experience. Instead of navigating folders and files in a flat hierarchy, you explore a **solar system** where:
+
+- **Sun** = Current directory (center of your view)
+- **Planets** = Subdirectories (orbiting the sun)
+- **Satellites** = Files (orbiting their parent planets)
+
+### Why Space Metaphor?
+
+| Traditional Problem | CLOSM Solution |
+|---------------------|----------------|
+| Hard to see what's eating storage | Large planets = large folders |
+| Can't distinguish old vs new files | Bright = recent, dim = old |
+| File types are hidden | Color-coded by type |
+| Deep hierarchies are confusing | Drill-down navigation |
+
+---
+
+## Features
+
+### Current (MVP)
+
+- 3D solar system visualization
+- Drill-down navigation (double-click to explore)
+- Visual encoding: size, color (file type), brightness (recency)
+- Smooth rotation and zoom
+- Selection and detail panel
+
+### Planned
+
+- Google Drive integration
+- File type / date / size filtering
+- AI-powered relationship analysis
+- Physics simulation for natural clustering
+- Desktop app (Electron/Tauri)
+- VR/AR exploration
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+
+### Installation
+
+```bash
+git clone https://github.com/CLOSM-org/closm-probe.git
+cd closm-probe
+npm install
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3100](http://localhost:3100) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Category | Technology |
+|----------|------------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| 3D Rendering | Three.js + React Three Fiber |
+| Styling | Tailwind CSS |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Documentation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Document | Description |
+|----------|-------------|
+| [Product Design](./docs/design/product-design.md) | Full design specification |
+| [Canvas Rendering](./docs/specifications/canvas-rendering.md) | Technical rendering details |
+| [CLAUDE.md](./CLAUDE.md) | Development guidelines |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Project Structure
+
+```
+closm-probe/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   └── components/             # React components
+│       └── universe/           # 3D visualization components
+├── docs/
+│   ├── design/                 # Design specifications
+│   └── specifications/         # Technical specifications
+└── public/                     # Static assets
+```
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read our documentation before submitting PRs.
+
+---
+
+## License
+
+MIT License - see [LICENSE](./LICENSE) for details.
+
+---
+
+## Links
+
+- [GitHub Repository](https://github.com/CLOSM-org/closm-probe)
+- [Documentation](./docs/README.md)
