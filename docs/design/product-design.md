@@ -1,18 +1,24 @@
 # CLOSM Probe Product Design
 
-**Version**: 1.0
+**Version**: 2.0
 **Last Updated**: 2026-01-08
 **Status**: Draft
 
 ---
 
-## 1. Product Overview
+# Part I: The Universe Metaphor
+
+The foundation of CLOSM Probe: representing storage as explorable space.
+
+---
+
+## 1. Vision: Storage as Space
 
 ### 1.1 Product Name
 
 **CLOSM Probe** (pronounced "Closm Probe")
 
-### 1.2 Concept
+### 1.2 Core Concept
 
 > Visualize storage as a 3D universe space and "explore" files in a new file management experience.
 
@@ -20,41 +26,33 @@
 
 Provide a next-generation storage interface that transcends traditional hierarchical file systems, allowing users to discover and organize files by intuitively exploring 3D space.
 
-### 1.4 Target Users
+### 1.4 Why Space Metaphor Works
 
-- Creators/engineers handling large amounts of files
-- Users seeking storage capacity visualization and optimization
-- Early adopters seeking new file management experiences
+Traditional file systems suffer from fundamental limitations:
 
----
-
-## 2. Problems We Solve
-
-### 2.1 Traditional File System Issues
-
-| Issue | Detail |
-|-------|--------|
+| Problem | Detail |
+|---------|--------|
 | 1D hierarchical structure | A file can only exist in one location |
 | Capacity invisibility | Hard to intuitively see "what's eating space" |
 | Lack of relationships | Cannot express semantic connections between files |
 | Increasing exploration cost | Deeper hierarchies make finding files harder |
 | Missing time axis | Difficult to distinguish old vs recent files |
 
-### 2.2 CLOSM Probe Solutions
+The **Physical Space Metaphor** solves these by mapping to intuitive spatial concepts:
 
-| Solution | Detail |
-|----------|--------|
-| 3D space representation | Files placed as nodes in universe space |
-| Capacity visualization | Node size = file/folder capacity |
-| Graph structure | Express relationships via edges |
-| Intuitive navigation | Drag and zoom to explore space |
-| Time axis expression | Update frequency shown via brightness/color |
+| Solution | Metaphor | Detail |
+|----------|----------|--------|
+| 3D space representation | Universe | Files placed as celestial bodies in space |
+| Capacity visualization | Size | Larger planets = larger directories |
+| Graph structure | Orbits & Edges | Express relationships via orbital paths |
+| Intuitive navigation | Exploration | Drag and zoom to explore space |
+| Time axis expression | Brightness | Recent = bright stars, old = dim |
 
 ---
 
-## 3. Physical Space Metaphor
+## 2. Solar System Model
 
-### 3.1 Solar System Model
+### 2.1 Hierarchical Mapping
 
 The visualization follows a **solar system metaphor** with flat orbital planes:
 
@@ -68,131 +66,371 @@ The visualization follows a **solar system metaphor** with flat orbital planes:
    🌙🌙🌙  Moons (2nd level - children of planets)
 ```
 
-**Key Principles:**
-- **2-Level Display**: Only show 2 levels from current "sun" for clarity
-- **Flat Orbital Plane**: All nodes on Y=0 (like real solar system)
-- **Drill-Down Navigation**: Double-click a planet to make it the new sun
+### 2.2 Element Mapping
 
-### 3.2 Basic Mapping
-
-| Element | Metaphor | Visual |
-|---------|----------|--------|
-| Current Root | Sun | Center, glowing |
+| Storage Element | Celestial Body | Visual Representation |
+|-----------------|----------------|----------------------|
+| Current Root | Sun | Center, glowing, pulsing |
 | 1st Level Directory | Planet | Orbits sun at radius 4 |
 | 2nd Level Items | Moon | Orbits parent planet at radius 1.5 |
-| File | Satellite | Smaller sphere, color by type |
+| File | Satellite | Smaller sphere, colored by type |
 
-### 3.3 Navigation
+### 2.3 Key Principles
 
-| Action | Result |
-|--------|--------|
-| Double-click directory | Drill down (directory becomes new sun) |
-| Breadcrumb click | Navigate back to that level |
-| Single click | Select and show details |
-| Drag | Rotate view |
-| Scroll | Zoom in/out |
+| Principle | Description |
+|-----------|-------------|
+| **2-Level Display** | Only show 2 levels from current "sun" for clarity |
+| **Flat Orbital Plane** | All celestial bodies on Y=0 (like real solar system) |
+| **Drill-Down Navigation** | Double-click a planet to make it the new sun |
 
-### 3.4 File Type Colors
+### 2.4 State Transitions
 
-| Type | Color | Hex |
-|------|-------|-----|
-| code | Cyan | #61dafb |
-| design | Purple | #a855f7 |
-| image | Orange | #f59e0b |
-| video | Red | #ef4444 |
-| pdf | Dark Red | #dc2626 |
-| doc | Blue | #3b82f6 |
-| data | Teal | #06b6d4 |
-| archive | Gray | #6b7280 |
-| directory | Violet | #8b5cf6 |
+```
+[Root View]           [After Drill-Down]
+    ☉ Sun                 ☉ New Sun (was Planet A)
+   /|\                   /|\
+  🪐🪐🪐                 🌙🌙🌙 (former children of Planet A)
+  A B C
+```
 
-### 3.5 Time Axis Expression
-
-| Update Time | Visual Representation |
-|-------------|----------------------|
-| Within 24h | Max brightness + pulse animation |
-| Within 1 week | High brightness |
-| Within 1 month | Medium brightness |
-| Over 3 months | Low brightness (dark) |
-| Over 1 year | Minimum brightness + grayed out |
+When drilling down:
+1. Selected planet becomes the new sun (center)
+2. Its children become the new planets
+3. Grandchildren become the new moons
+4. Breadcrumb trail shows navigation path
 
 ---
 
-## 4. Feature Specifications
+## 3. Visual Encoding System
 
-### 4.1 Core Features
+Three dimensions encode information about each celestial body.
 
-#### 4.1.1 3D Navigation
+### 3.1 Size Encoding (Capacity)
 
-| Operation | Action |
-|-----------|--------|
-| Drag | Rotate view |
-| Scroll | Zoom in/out |
-| Double-click | Focus on selected node |
-| Right-drag | Pan (parallel movement) |
-| Pinch (touch) | Zoom |
+Node size represents storage capacity using logarithmic scale:
 
-#### 4.1.2 Node Selection & Detail Display
+| Type | Base Size | Scale Factor |
+|------|-----------|--------------|
+| Planet (directory) | 15px | log10(size) × 3 |
+| Satellite (file) | 8px | log10(size) × 2 |
 
-Information displayed on selection:
+### 3.2 Color Encoding (File Type)
+
+| File Type | Color | Hex Code |
+|-----------|-------|----------|
+| Code | Cyan | #61dafb |
+| Design | Purple | #a855f7 |
+| Image | Orange | #f59e0b |
+| Video | Red | #ef4444 |
+| PDF | Dark Red | #dc2626 |
+| Document | Blue | #3b82f6 |
+| Data | Teal | #06b6d4 |
+| Archive | Gray | #6b7280 |
+| Directory | Violet | #8b5cf6 |
+
+### 3.3 Brightness Encoding (Time/Recency)
+
+| Last Modified | Brightness | Visual Effect |
+|---------------|------------|---------------|
+| Within 24h | 100% | Max brightness + pulse animation |
+| Within 1 week | 85% | High brightness |
+| Within 1 month | 70% | Medium brightness |
+| Within 3 months | 55% | Low brightness |
+| Within 1 year | 40% | Dim |
+| Over 1 year | 25% | Minimum + grayed out |
+
+### 3.4 UI Color Palette
+
+| Usage | Color | Hex |
+|-------|-------|-----|
+| Background (deep space) | Dark Navy | #0a0a1a |
+| Background (shallow space) | Dark Blue | #1a1a2e |
+| Accent (primary) | Purple | #a855f7 |
+| Accent (secondary) | Blue | #3b82f6 |
+| Text (main) | White | #ffffff |
+| Text (sub) | Gray | #888888 |
+| Success | Green | #22c55e |
+| Warning | Orange | #f59e0b |
+| Error | Red | #ef4444 |
+
+---
+
+# Part II: Navigating the Universe
+
+How users explore and interact with the storage universe.
+
+---
+
+## 4. Exploration Mechanics
+
+### 4.1 View Manipulation
+
+| Operation | Action | Notes |
+|-----------|--------|-------|
+| Drag | Rotate view | Orbit around the sun |
+| Scroll | Zoom in/out | Get closer or farther from planets |
+| Right-drag | Pan | Parallel movement |
+| Pinch (touch) | Zoom | Mobile gesture support |
+
+### 4.2 Navigation Actions
+
+| Action | Result |
+|--------|--------|
+| Double-click planet | Drill down (planet becomes new sun) |
+| Breadcrumb click | Navigate back to that level |
+| Double-click sun | Go up one level |
+
+### 4.3 Rotation Limits
+
+- X-axis rotation: -π/2 to π/2 (prevent flipping)
+- Y-axis rotation: Unlimited (full orbit)
+- Zoom range: 0.5x to 2.0x
+
+---
+
+## 5. Discovery & Selection
+
+### 5.1 Selection Mechanics
+
+| Action | Result |
+|--------|--------|
+| Single click | Select celestial body, show details |
+| Hover | Highlight with glow effect |
+| Click empty space | Deselect |
+
+### 5.2 Detail Panel Information
+
+When a celestial body is selected:
 - File/folder name
-- Path (breadcrumbs)
-- Size (bytes + percentage of total)
+- Path (breadcrumb format)
+- Size (bytes + percentage of parent)
 - Last modified date
 - File type
-- Related files list
+- Related files list (future)
 
-#### 4.1.3 Capacity Analysis
+### 5.3 Search & Focus
+
+1. Enter keyword in search bar
+2. Matching celestial bodies highlight
+3. Camera animates to focus on first match
+4. Navigate between matches with arrows
+
+---
+
+## 6. Information Architecture
+
+### 6.1 Screen Layout
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Header: CLOSM Probe Logo | Search Bar | Settings | User    │
+├─────────────────────────────────────────────────────────────┤
+│ ┌─────────┐ ┌─────────────────────────────┐ ┌───────────┐  │
+│ │         │ │                             │ │           │  │
+│ │ Sidebar │ │                             │ │  Detail   │  │
+│ │         │ │                             │ │  Panel    │  │
+│ │ - Overview│ │      3D Universe Canvas    │ │           │  │
+│ │ - Folders│ │                             │ │ - Selected│  │
+│ │ - Filters│ │                             │ │   Body    │  │
+│ │ - Tags  │ │                             │ │ - Details │  │
+│ │         │ │                             │ │ - Related │  │
+│ │         │ │                             │ │           │  │
+│ └─────────┘ └─────────────────────────────┘ └───────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│  Footer: Operation Hints | Zoom Level | Body Count          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 Design Principles
+
+| Principle | Detail |
+|-----------|--------|
+| Dark mode first | Optimal for space representation |
+| Minimal | Avoid information overload, show only necessary info |
+| Intuitive operation | Natural mouse/touch interaction |
+| Responsive | Desktop/tablet/mobile support |
+| Accessibility | Keyboard operation, screen reader support |
+
+---
+
+# Part III: Universe Features
+
+Capabilities available within the storage universe.
+
+---
+
+## 7. Core Capabilities
+
+### 7.1 Capacity Analysis
 
 - Total capacity summary display
-- Directory/file count
-- Highlight top capacity nodes
+- Planet/satellite count per level
+- Highlight top capacity celestial bodies
 - Progress bar showing percentage of total
 
-#### 4.1.4 Filtering
+### 7.2 Filtering
 
-- Filter by file type
-- Filter by update date
-- Filter by size
-- Filter by tags/labels
+| Filter Type | Options |
+|-------------|---------|
+| File type | Code, image, video, document, etc. |
+| Update date | Within 24h, week, month, year, older |
+| Size | Custom min/max range |
+| Tags/Labels | User-defined categories |
 
-#### 4.1.5 Search → Focus
+### 7.3 Visualization Modes
 
-- Keyword search
-- Highlight matching nodes
-- Camera zooms to matching node
+| Mode | Description |
+|------|-------------|
+| Type view | Color by file type (default) |
+| Age view | Color by recency |
+| Size view | Color by capacity |
 
-### 4.2 Extended Features (Future)
+---
 
-#### 4.2.1 AI Relationship Analysis
+## 8. Extended Capabilities (Future)
+
+### 8.1 AI Relationship Analysis
 
 - Analyze file contents via Claude API
 - Auto-generate edges between semantically similar files
-- Cluster similar files
+- Cluster similar satellites into constellations
+- Related file recommendations
 
-#### 4.2.2 Physics Simulation
+### 8.2 Physics Simulation
 
 - Gravity model (related files attract)
 - Auto-layout optimization
-- Natural "galaxy" formation
+- Natural "galaxy" formation over time
 
-#### 4.2.3 File Operations
+### 8.3 File Operations
 
-- Drag & drop file movement
+- Drag & drop file movement between planets
 - Multi-select bulk deletion
-- Create new folders
+- Create new folders (spawn new planets)
 
-#### 4.2.4 Anomaly Detection
+### 8.4 Anomaly Detection
 
-- Highlight rapidly growing folders in red
-- Gray out long-untouched files
+- Highlight rapidly growing planets in red
+- Gray out long-untouched satellites
 - Detect duplicate files
 
 ---
 
-## 5. Technical Architecture
+# Part IV: Building the Universe
 
-### 5.1 System Diagram
+Technical implementation of the storage universe.
+
+---
+
+## 9. Rendering Architecture
+
+### 9.1 Rendering Technologies
+
+| Technology | Purpose | Notes |
+|------------|---------|-------|
+| Canvas 2D | Initial lightweight 3D | Current implementation |
+| Three.js | Full 3D rendering | WebGL-based |
+| React Three Fiber | Three.js + React | Declarative approach |
+
+### 9.2 Performance Strategies
+
+| Strategy | Description |
+|----------|-------------|
+| Level of Detail (LOD) | Reduce detail for distant bodies |
+| Virtualization | Hide off-screen celestial bodies |
+| Web Workers | Offload position calculations |
+| Batch rendering | Group canvas operations |
+
+### 9.3 Detailed Specifications
+
+See [Canvas Rendering Specification](../specifications/canvas-rendering.md) for:
+- 3D projection formulas
+- Gradient effects
+- Animation system
+- Hit detection
+
+---
+
+## 10. Data Architecture
+
+### 10.1 CelestialBody (FileNode)
+
+```typescript
+interface CelestialBody {
+  id: string;
+  name: string;
+  type: 'planet' | 'satellite';  // directory or file
+  path: string;
+  size: number;              // bytes
+  fileType?: string;         // code, image, video, etc.
+  mimeType?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  accessedAt?: Date;
+
+  // 3D space coordinates
+  position: {
+    x: number;
+    y: number;
+    z: number;
+  };
+
+  // Orbital relationship
+  parentId: string | null;
+  children?: CelestialBody[];
+
+  // Metadata
+  tags?: string[];
+  color?: string;
+  thumbnail?: string;
+}
+```
+
+### 10.2 OrbitEdge (FileEdge)
+
+```typescript
+interface OrbitEdge {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  relationType: 'orbital' | 'semantic' | 'reference' | 'duplicate';
+  strength: number;          // 0.0 - 1.0
+  createdAt: Date;
+  metadata?: {
+    reason?: string;         // For AI-generated edges
+    confidence?: number;
+  };
+}
+```
+
+### 10.3 ViewConfig
+
+```typescript
+interface ViewConfig {
+  rotation: { x: number; y: number };
+  zoom: number;
+  center: { x: number; y: number; z: number };
+  currentSunId: string;      // Current root (sun) ID
+  breadcrumb: string[];      // Navigation path
+  filters: {
+    fileTypes?: string[];
+    dateRange?: { start: Date; end: Date };
+    sizeRange?: { min: number; max: number };
+    tags?: string[];
+  };
+  displayOptions: {
+    showLabels: boolean;
+    showOrbits: boolean;
+    colorScheme: 'type' | 'age' | 'size';
+  };
+}
+```
+
+---
+
+## 11. System Architecture
+
+### 11.1 System Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -222,7 +460,7 @@ Information displayed on selection:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Tech Stack
+### 11.2 Tech Stack
 
 #### Frontend
 
@@ -251,153 +489,94 @@ Information displayed on selection:
 | PostgreSQL | Cloud DB | SaaS version |
 | Neo4j | Graph DB | Relationship storage |
 
-### 5.3 Platform Deployment
+---
 
-| Platform | Technology | Priority |
-|----------|------------|----------|
-| Web (SPA) | Next.js | P0 |
-| Desktop (Mac/Win/Linux) | Electron / Tauri | P1 |
-| Mobile (iOS/Android) | React Native | P2 |
-| VR/AR | WebXR | P3 |
+## 12. Platform Strategy
+
+| Platform | Technology | Priority | Notes |
+|----------|------------|----------|-------|
+| Web (SPA) | Next.js | P0 | Primary target |
+| Desktop (Mac/Win/Linux) | Electron / Tauri | P1 | Local file system |
+| Mobile (iOS/Android) | React Native | P2 | Touch-first |
+| VR/AR | WebXR | P3 | Immersive exploration |
 
 ---
 
-## 6. Data Models
+# Part V: Bringing the Universe to Users
 
-### 6.1 FileNode
-
-```typescript
-interface FileNode {
-  id: string;
-  name: string;
-  type: 'file' | 'directory';
-  path: string;
-  size: number;              // bytes
-  fileType?: string;         // code, image, video, etc.
-  mimeType?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  accessedAt?: Date;
-
-  // 3D space coordinates
-  position: {
-    x: number;
-    y: number;
-    z: number;
-  };
-
-  // Parent-child relationship
-  parentId: string | null;
-  children?: FileNode[];
-
-  // Metadata
-  tags?: string[];
-  color?: string;
-  thumbnail?: string;
-}
-```
-
-### 6.2 FileEdge
-
-```typescript
-interface FileEdge {
-  id: string;
-  sourceId: string;
-  targetId: string;
-  relationType: 'parent-child' | 'semantic' | 'reference' | 'duplicate';
-  strength: number;          // 0.0 - 1.0
-  createdAt: Date;
-  metadata?: {
-    reason?: string;         // Reason (for AI-generated edges)
-    confidence?: number;
-  };
-}
-```
-
-### 6.3 ViewConfig
-
-```typescript
-interface ViewConfig {
-  rotation: { x: number; y: number };
-  zoom: number;
-  center: { x: number; y: number; z: number };
-  filters: {
-    fileTypes?: string[];
-    dateRange?: { start: Date; end: Date };
-    sizeRange?: { min: number; max: number };
-    tags?: string[];
-  };
-  displayOptions: {
-    showLabels: boolean;
-    showEdges: boolean;
-    showOrbits: boolean;
-    colorScheme: 'type' | 'age' | 'size';
-  };
-}
-```
+Product strategy and go-to-market approach.
 
 ---
 
-## 7. UI/UX Design
+## 13. Target Users & Use Cases
 
-### 7.1 Screen Layout
+### 13.1 Target Users
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Header: CLOSM Probe Logo | Search Bar | Settings | User    │
-├─────────────────────────────────────────────────────────────┤
-│ ┌─────────┐ ┌─────────────────────────────┐ ┌───────────┐  │
-│ │         │ │                             │ │           │  │
-│ │ Sidebar │ │                             │ │  Detail   │  │
-│ │         │ │                             │ │  Panel    │  │
-│ │ - Overview│ │      3D Canvas            │ │           │  │
-│ │ - Folders│ │                             │ │ - Selected│  │
-│ │ - Filters│ │                             │ │   Node    │  │
-│ │ - Tags  │ │                             │ │ - Details │  │
-│ │         │ │                             │ │ - Related │  │
-│ │         │ │                             │ │           │  │
-│ └─────────┘ └─────────────────────────────┘ └───────────┘  │
-├─────────────────────────────────────────────────────────────┤
-│  Footer: Operation Hints | Zoom Level | Node Count          │
-└─────────────────────────────────────────────────────────────┘
-```
+- Creators/engineers handling large amounts of files
+- Users seeking storage capacity visualization and optimization
+- Early adopters seeking new file management experiences
 
-### 7.2 Design Principles
+### 13.2 Use Case: Storage Capacity Audit
 
-| Principle | Detail |
-|-----------|--------|
-| Dark mode first | Optimal for space representation |
-| Minimal | Avoid information overload, show only necessary info |
-| Intuitive operation | Natural mouse/touch interaction |
-| Responsive | Desktop/tablet/mobile support |
-| Accessibility | Keyboard operation, screen reader support |
+**Persona**: User with "Google Drive is full"
 
-### 7.3 Color Palette
+**Flow**:
+1. Log in to CLOSM Probe
+2. Find the largest planet (folder) in the universe
+3. Click to see its moons (contents)
+4. Identify massive satellites (files)
+5. Delete unnecessary files
 
-| Usage | Color | Hex |
-|-------|-------|-----|
-| Background (deep space) | Dark Navy | #0a0a1a |
-| Background (shallow space) | Dark Blue | #1a1a2e |
-| Accent (primary) | Purple | #a855f7 |
-| Accent (secondary) | Blue | #3b82f6 |
-| Text (main) | White | #ffffff |
-| Text (sub) | Gray | #888888 |
-| Success | Green | #22c55e |
-| Warning | Orange | #f59e0b |
-| Error | Red | #ef4444 |
+**Value**: Visually identify the culprit of capacity usage
+
+### 13.3 Use Case: Finding Related Files
+
+**Persona**: "Where are all files related to that project?"
+
+**Flow**:
+1. Enter project name in search bar
+2. Camera focuses on matching celestial body
+3. Discover surrounding constellation (related files)
+4. Understand relationships beyond folder hierarchy
+
+**Value**: Discover scattered files in one place
+
+### 13.4 Use Case: Cleaning Old Files
+
+**Persona**: "I want to clean up files untouched for over a year"
+
+**Flow**:
+1. Select "Over 1 year" in filter
+2. Dim (low brightness) bodies appear
+3. Multi-select and bulk delete
+4. Storage capacity recovers
+
+**Value**: Easy filtering by time axis
+
+### 13.5 Use Case: Understanding Project Structure
+
+**Persona**: "What's the structure of this project I just joined?"
+
+**Flow**:
+1. Select project folder (planet)
+2. Get bird's eye view of the solar system
+3. Understand main planets (folder) layout
+4. Understand satellite type distribution by color
+
+**Value**: Intuitively understand project structure
 
 ---
 
-## 8. Development Roadmap
+## 14. Development Roadmap
 
 ### Phase 1: MVP (Complete)
 
-**Goal**: Basic 3D visualizer implementation
+**Goal**: Basic 3D universe visualizer
 
-- [x] 3D space node display
-- [x] Capacity visualization (node size)
+- [x] 3D space celestial body display
+- [x] Capacity visualization (body size)
 - [x] Drag rotation/zoom
-- [x] Node selection/detail panel
+- [x] Body selection/detail panel
 - [ ] Sample data demo
 
 **Deliverable**: Web-based prototype
@@ -423,7 +602,7 @@ interface ViewConfig {
 - [ ] Size filter
 - [ ] Search → zoom
 - [ ] Top capacity report
-- [ ] Duplicate file detection
+- [ ] Duplicate detection
 
 **Deliverable**: Analysis-enabled version
 
@@ -434,7 +613,7 @@ interface ViewConfig {
 - [ ] Claude API integration
 - [ ] File content analysis
 - [ ] Auto semantic edge generation
-- [ ] Clustering display
+- [ ] Constellation clustering
 - [ ] Related file recommendations
 
 **Deliverable**: AI analysis version
@@ -475,81 +654,30 @@ interface ViewConfig {
 
 ---
 
-## 9. Use Cases
+## 15. Market Position
 
-### 9.1 Storage Capacity Audit
+### 15.1 Competitive Analysis
 
-**Persona**: User with "Google Drive is full"
-
-**Flow**:
-1. Log in to CLOSM Probe
-2. Find the largest "planet" (folder) in 3D space
-3. Click to expand contents
-4. Identify huge "satellites" (files)
-5. Delete unnecessary files
-
-**Value**: Visually identify the culprit of capacity usage
-
-### 9.2 Finding Related Files
-
-**Persona**: "Where are all files related to that project?"
-
-**Flow**:
-1. Enter project name in search bar
-2. Camera focuses on matching node
-3. Discover surrounding cluster (related files)
-4. Understand relationships beyond folder hierarchy
-
-**Value**: Discover scattered files in one place
-
-### 9.3 Cleaning Old Files
-
-**Persona**: "I want to clean up files untouched for over a year"
-
-**Flow**:
-1. Select "Over 1 year" in filter
-2. Dark (low brightness) nodes appear
-3. Multi-select and bulk delete
-4. Storage capacity recovers
-
-**Value**: Easy filtering by time axis
-
-### 9.4 Understanding Project Structure
-
-**Persona**: "What's the structure of this project I just joined?"
-
-**Flow**:
-1. Select project folder
-2. Get bird's eye view in 3D space
-3. Understand main folder (planet) layout
-4. Understand file type distribution by color
-
-**Value**: Intuitively understand project structure
-
----
-
-## 10. Competitive Analysis
-
-| Product | Features | Differentiation from CLOSM Probe |
-|---------|----------|----------------------------------|
+| Product | Features | CLOSM Probe Differentiation |
+|---------|----------|----------------------------|
 | Finder / Explorer | Tree structure, 1D | 3D space + relationships |
 | WinDirStat / GrandPerspective | 2D treemap, capacity only | 3D + time axis + relationships |
 | Notion | Block-based but not spatial | Spatial navigation |
 | Obsidian Graph View | Note relationship visualization | Targets entire file system |
 | Dropbox / Google Drive | Cloud storage | Visualization/analysis features |
 
-### CLOSM Probe Differentiation
+### 15.2 Key Differentiators
 
 1. **3D space representation**: Intuitive visualization beyond 2D
-2. **Capacity + Time + Relationships**: Express multiple axes simultaneously
+2. **Multi-axis encoding**: Capacity + Time + Relationships simultaneously
 3. **AI relationship analysis**: Auto-detect semantic connections
-4. **Intuitive operation**: Game-like exploration
+4. **Exploration paradigm**: Game-like universe exploration
 
 ---
 
-## 11. Success Metrics (KPI)
+## 16. Success Metrics (KPI)
 
-### 11.1 User Acquisition
+### 16.1 User Acquisition
 
 | Metric | Target (6 months) |
 |--------|-------------------|
@@ -557,7 +685,7 @@ interface ViewConfig {
 | MAU | 300 |
 | DAU | 50 |
 
-### 11.2 Engagement
+### 16.2 Engagement
 
 | Metric | Target |
 |--------|--------|
@@ -565,7 +693,7 @@ interface ViewConfig {
 | Sessions per week | 3+ |
 | Feature usage (search) | 60%+ |
 
-### 11.3 Business
+### 16.3 Business
 
 | Metric | Target |
 |--------|--------|
@@ -575,19 +703,11 @@ interface ViewConfig {
 
 ---
 
-## 12. Risks and Mitigations
-
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Performance issues (large files) | UX degradation | LOD implementation, virtualization, Web Worker |
-| Google API limits | Feature restriction | Caching, diff retrieval, rate limit handling |
-| 3D operation learning curve | Drop-off | Tutorial, 2D mode option |
-| Trademark issues | Legal risk | Pre-investigation by patent attorney |
-| Security (file access) | Trust | OAuth2.0, principle of least privilege |
+# Appendices
 
 ---
 
-## Appendix
+## A. Mathematical Formulas
 
 ### A.1 3D Projection Formula
 
@@ -624,16 +744,16 @@ const project = (x, y, z, rotation, scale, center) => {
 
 ```javascript
 // Log scale to make huge files reasonable size
-const calculateNodeRadius = (size, type) => {
-  const baseSize = type === 'directory' ? 15 : 8;
-  const scaleFactor = type === 'directory' ? 3 : 2;
-  const minSize = type === 'directory' ? 1000 : 100;
+const calculateBodyRadius = (size, type) => {
+  const baseSize = type === 'planet' ? 15 : 8;
+  const scaleFactor = type === 'planet' ? 3 : 2;
+  const minSize = type === 'planet' ? 1000 : 100;
 
   return baseSize + Math.log10(Math.max(size, minSize)) * scaleFactor;
 };
 ```
 
-### A.3 Brightness Calculation (Update Time Based)
+### A.3 Brightness Calculation (Time-Based)
 
 ```javascript
 // Calculate brightness from last modified date
@@ -653,7 +773,19 @@ const calculateBrightness = (lastModified) => {
 
 ---
 
-## References
+## B. Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Performance issues (large files) | UX degradation | LOD implementation, virtualization, Web Worker |
+| Google API limits | Feature restriction | Caching, diff retrieval, rate limit handling |
+| 3D operation learning curve | Drop-off | Tutorial, 2D mode option |
+| Trademark issues | Legal risk | Pre-investigation by patent attorney |
+| Security (file access) | Trust | OAuth2.0, principle of least privilege |
+
+---
+
+## C. References
 
 - NASA Voyager Program: https://science.nasa.gov/mission/voyager/
 - Three.js Documentation: https://threejs.org/docs/

@@ -1,6 +1,8 @@
 # Canvas 2D Rendering Specification
 
-Technical details for 3D projection and rendering using Canvas 2D API.
+Technical details for 3D projection and rendering of the storage universe using Canvas 2D API.
+
+For conceptual background, see [Product Design - Part I: The Universe Metaphor](../design/product-design.md#part-i-the-universe-metaphor).
 
 ---
 
@@ -44,15 +46,17 @@ const project = (x: number, y: number, z: number, rotation: { x: number; y: numb
 
 ---
 
-## Node Rendering
+## Celestial Body Rendering
 
 ### Size Calculation (Logarithmic Scale)
 
+Planets (directories) and satellites (files) use logarithmic scaling to handle vastly different sizes.
+
 ```typescript
-const calculateNodeRadius = (size: number, type: 'file' | 'directory') => {
-  const baseSize = type === 'directory' ? 15 : 8;
-  const scaleFactor = type === 'directory' ? 3 : 2;
-  const minSize = type === 'directory' ? 1000 : 100;
+const calculateBodyRadius = (size: number, type: 'planet' | 'satellite') => {
+  const baseSize = type === 'planet' ? 15 : 8;
+  const scaleFactor = type === 'planet' ? 3 : 2;
+  const minSize = type === 'planet' ? 1000 : 100;
 
   return baseSize + Math.log10(Math.max(size, minSize)) * scaleFactor;
 };
@@ -66,17 +70,17 @@ const calculateNodeRadius = (size: number, type: 'file' | 'directory') => {
 // Safe radius for createRadialGradient
 const safeRadius = Math.max(1, calculatedRadius);
 
-// Safe ellipse parameters
+// Safe ellipse parameters (for orbital paths)
 ctx.ellipse(x, y, Math.max(1, radiusX), Math.max(0.5, radiusY), rotation, 0, Math.PI * 2);
 ```
 
 ### Z-Sorting
 
-Items must be sorted by depth before rendering:
+Celestial bodies must be sorted by depth before rendering (back to front):
 
 ```typescript
-const sortedItems = items
-  .map(item => ({ ...item, projected: project(item.x, item.y, item.z) }))
+const sortedBodies = bodies
+  .map(body => ({ ...body, projected: project(body.x, body.y, body.z) }))
   .sort((a, b) => a.projected.depth - b.projected.depth);
 ```
 
@@ -85,6 +89,8 @@ const sortedItems = items
 ## Gradient Effects
 
 ### Planet Gradient (Directory)
+
+Planets have a 3D spherical appearance with lighting from upper-left:
 
 ```typescript
 const planetGradient = ctx.createRadialGradient(
@@ -98,6 +104,8 @@ planetGradient.addColorStop(1, shadeColor(color, -40));
 
 ### Satellite Gradient (File)
 
+Satellites have a highlight to distinguish from planets:
+
 ```typescript
 const satGradient = ctx.createRadialGradient(
   x - radius * 0.3, y - radius * 0.3, 0,
@@ -109,6 +117,8 @@ satGradient.addColorStop(1, shadeColor(color, -30));
 ```
 
 ### Glow Effect (Selection/Hover)
+
+Selected or hovered celestial bodies emit a glow:
 
 ```typescript
 const glowRadius = Math.max(1, radius * 3);
@@ -128,16 +138,18 @@ glow.addColorStop(1, 'transparent');
 useEffect(() => {
   const interval = setInterval(() => {
     setTime(t => t + 0.02);
-  }, 50);  // 20fps
+  }, 50);  // 20fps for smooth orbital motion
   return () => clearInterval(interval);
 }, []);
 ```
 
 ### Pulse Effect
 
+Planets (directories) pulse gently to indicate they can be explored:
+
 ```typescript
-// Directory pulse
-const pulse = item.type === 'directory'
+// Planet pulse animation
+const pulse = body.type === 'planet'
   ? 0.9 + Math.sin(time * 1.5) * 0.1
   : 1;
 
@@ -146,10 +158,12 @@ const animatedRadius = baseRadius * pulse;
 
 ### Brightness by Age
 
+Recent celestial bodies are brighter (see Visual Encoding in product design):
+
 ```typescript
 const calculateBrightness = (lastModified: number) => {
   const age = (Date.now() - lastModified) / (1000 * 60 * 60 * 24 * 30); // months
-  return Math.max(0.5, 1 - age * 0.1);
+  return Math.max(0.25, 1 - age * 0.1);
 };
 ```
 
@@ -159,27 +173,31 @@ const calculateBrightness = (lastModified: number) => {
 
 ### Hit Detection
 
+Detect which celestial body is under the cursor:
+
 ```typescript
-const getItemAt = (mouseX: number, mouseY: number) => {
-  // Iterate in reverse (front to back)
-  for (const item of [...items].reverse()) {
-    const projected = project(item.x, item.y, item.z);
-    const radius = calculateNodeRadius(item.size, item.type) * projected.scale;
+const getBodyAt = (mouseX: number, mouseY: number) => {
+  // Iterate in reverse (front to back for proper occlusion)
+  for (const body of [...bodies].reverse()) {
+    const projected = project(body.x, body.y, body.z);
+    const radius = calculateBodyRadius(body.size, body.type) * projected.scale;
 
     const dist = Math.sqrt(
       (mouseX - projected.screenX) ** 2 +
       (mouseY - projected.screenY) ** 2
     );
 
-    if (dist < radius + 5) {  // 5px tolerance
-      return item;
+    if (dist < radius + 5) {  // 5px tolerance for easier selection
+      return body;
     }
   }
   return null;
 };
 ```
 
-### Drag Rotation
+### Drag Rotation (Orbit View)
+
+Rotate the view around the sun (current root):
 
 ```typescript
 const handleMouseMove = (e: MouseEvent) => {
@@ -197,7 +215,9 @@ const handleMouseMove = (e: MouseEvent) => {
 };
 ```
 
-### Zoom
+### Zoom (Approach/Retreat)
+
+Get closer to or farther from the solar system:
 
 ```typescript
 const handleWheel = (e: WheelEvent) => {
@@ -210,15 +230,24 @@ const handleWheel = (e: WheelEvent) => {
 
 ## Performance Considerations
 
-### Large Datasets
+### Large Universes
 
-- Implement Level of Detail (LOD)
-- Use Web Workers for position calculations
-- Virtualize off-screen nodes
-- Batch canvas operations
+When visualizing large storage (thousands of celestial bodies):
+
+- **Level of Detail (LOD)**: Reduce rendering detail for distant bodies
+- **Web Workers**: Offload position calculations to background threads
+- **Virtualization**: Don't render off-screen celestial bodies
+- **Batch Operations**: Group canvas draw calls
 
 ### Memory Management
 
 - Clear references in useEffect cleanup
-- Use `useMemo` for expensive calculations
-- Avoid creating objects in render loops
+- Use `useMemo` for expensive calculations (flattening, sorting)
+- Avoid creating new objects in render loops
+
+---
+
+## Related Documentation
+
+- [Product Design - Visual Encoding System](../design/product-design.md#3-visual-encoding-system)
+- [Product Design - Rendering Architecture](../design/product-design.md#9-rendering-architecture)

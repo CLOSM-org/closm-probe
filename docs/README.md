@@ -1,6 +1,6 @@
 # CLOSM Probe Documentation
 
-Documentation hub for CLOSM Probe project.
+Documentation hub for CLOSM Probe - the 3D storage universe explorer.
 
 ---
 
@@ -8,8 +8,8 @@ Documentation hub for CLOSM Probe project.
 
 | Document | Description |
 |----------|-------------|
-| [Product Design](./design/product-design.md) | Full product design specification |
-| [Canvas Rendering](./specifications/canvas-rendering.md) | 3D rendering technical details |
+| [Product Design](./design/product-design.md) | Full product design (metaphor-centric) |
+| [Canvas Rendering](./specifications/canvas-rendering.md) | 3D rendering technical specification |
 
 ---
 
@@ -26,23 +26,32 @@ docs/
 
 ---
 
-## Design Documents
+## Product Design Overview
 
-Product design and UX specifications.
+The product design document is organized around the **Physical Space Metaphor** - the core innovation of CLOSM Probe.
 
-### [Product Design](./design/product-design.md)
+### Document Structure
 
-Comprehensive product design document including:
-- Product overview and mission
-- Physical space metaphor (directory=planet, file=satellite)
-- Feature specifications
-- Technical architecture
-- Data models
-- UI/UX design
-- Development roadmap
-- Use cases
-- Competitive analysis
-- Success metrics
+| Part | Focus | Key Sections |
+|------|-------|--------------|
+| **Part I: The Universe Metaphor** | Core concept | Vision, Solar System Model, Visual Encoding |
+| **Part II: Navigating the Universe** | Interaction | Exploration, Discovery, Information Architecture |
+| **Part III: Universe Features** | Capabilities | Core & Extended Features |
+| **Part IV: Building the Universe** | Technical | Rendering, Data, System Architecture |
+| **Part V: Bringing to Users** | Strategy | Users, Roadmap, Market, Metrics |
+| **Appendices** | Reference | Formulas, Risks, References |
+
+### Core Metaphor
+
+| Storage Concept | Celestial Metaphor |
+|-----------------|-------------------|
+| Root directory | Sun |
+| Directory | Planet |
+| File | Satellite |
+| Subdirectory | Moon |
+| File size | Body size |
+| File type | Body color |
+| Recency | Brightness |
 
 ---
 
@@ -53,12 +62,11 @@ Implementation details and coding guidelines.
 ### [Canvas Rendering](./specifications/canvas-rendering.md)
 
 3D rendering implementation using Canvas 2D API:
-- 3D projection formulas
-- Node rendering (planets/satellites)
-- Gradient effects
-- Animation system
-- User interaction handling
-- Performance considerations
+- 3D projection (planets/satellites in space)
+- Gradient effects (planet glow, satellite shine)
+- Animation system (orbital motion, pulse effects)
+- User interaction (hit detection, rotation, zoom)
+- Performance optimization (LOD, virtualization)
 
 ---
 
@@ -67,9 +75,10 @@ Implementation details and coding guidelines.
 When updating documentation:
 
 1. Keep documents in **English** (for token efficiency)
-2. Update related documents when making changes
-3. Remove outdated content
-4. Follow markdown best practices
+2. Use **metaphor terminology** consistently (planet, satellite, celestial body)
+3. Update related documents when making changes
+4. Remove outdated content
+5. Follow markdown best practices
 
 ---
 
