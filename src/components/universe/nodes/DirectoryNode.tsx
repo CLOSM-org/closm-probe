@@ -1,10 +1,10 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { PositionedItem, typeColors, calculateNodeRadius, formatSize } from '../types';
+import { PositionedItem, calculateNodeRadius, formatSize } from '../types';
 
 interface DirectoryNodeProps {
   item: PositionedItem;
@@ -28,7 +28,23 @@ export function DirectoryNode({
   const [localHover, setLocalHover] = useState(false);
 
   const radius = calculateNodeRadius(item.size, 'directory');
-  const color = typeColors.directory;
+  const color = '#ffffff'; // White for directory planets
+
+  // Calculate ring tilt based on item name (deterministic random)
+  const ringTilt = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < item.name.length; i++) {
+      hash = ((hash << 5) - hash) + item.name.charCodeAt(i);
+      hash = hash & hash;
+    }
+    const tiltX = (Math.abs(hash % 100) / 100) * Math.PI * 0.4 + Math.PI * 0.2; // 0.2π to 0.6π
+    const tiltZ = ((hash % 200) / 200) * Math.PI * 0.3; // 0 to 0.3π
+    return { x: tiltX, z: tiltZ };
+  }, [item.name]);
+
+  // Calculate ring thickness based on child count
+  const childCount = item.children?.length || 0;
+  const ringThickness = radius * (0.08 + Math.min(childCount, 50) * 0.004); // Base + proportional to children
 
   // Pulse animation for directories
   useFrame(({ clock }) => {
@@ -66,7 +82,14 @@ export function DirectoryNode({
   };
 
   const showLabel = isSelected || isHovered || localHover;
-  const glowIntensity = isSelected ? 1.0 : isHovered || localHover ? 0.8 : 0.6;
+
+  // Check if this is the star (center, depth=0)
+  const isStar = item.depth === 0;
+
+  // Only stars emit light, planets do not glow
+  const glowIntensity = isStar
+    ? (isSelected ? 2.0 : isHovered || localHover ? 1.8 : 1.5)
+    : 0; // Planets: no emission
 
   return (
     <group position={[item.x, item.y, item.z]}>
@@ -83,19 +106,19 @@ export function DirectoryNode({
           color={color}
           emissive={color}
           emissiveIntensity={glowIntensity}
-          roughness={0.4}
-          metalness={0.3}
+          roughness={0.2}
+          metalness={0.1}
         />
       </mesh>
 
-      {/* Ring (Saturn-like) */}
-      {item.children && item.children.length > 0 && (
-        <mesh ref={ringRef} rotation={[Math.PI * 0.4, 0, 0]}>
-          <torusGeometry args={[radius * 1.5, radius * 0.1, 2, 64]} />
+      {/* Ring (Saturn-like) - shows for planets only (not star) */}
+      {!isStar && (
+        <mesh ref={ringRef} rotation={[ringTilt.x, 0, ringTilt.z]}>
+          <torusGeometry args={[radius * 1.6, ringThickness, 2, 64]} />
           <meshStandardMaterial
             color={color}
             transparent
-            opacity={0.4}
+            opacity={0.6}
             side={THREE.DoubleSide}
           />
         </mesh>

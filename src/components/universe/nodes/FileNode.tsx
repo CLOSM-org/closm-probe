@@ -67,7 +67,7 @@ export function FileNode({
 
   return (
     <group position={[item.x, item.y, item.z]}>
-      {/* Main sphere (satellite) */}
+      {/* Main octahedron (file crystal) */}
       <mesh
         ref={meshRef}
         onPointerOver={handlePointerOver}
@@ -75,7 +75,7 @@ export function FileNode({
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       >
-        <sphereGeometry args={[radius, 16, 16]} />
+        <octahedronGeometry args={[radius, 0]} />
         <meshStandardMaterial
           color={color}
           emissive={color}

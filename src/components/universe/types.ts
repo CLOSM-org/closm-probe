@@ -32,29 +32,21 @@ export interface AsteroidBelt {
   totalSize: number;
 }
 
-// Threshold for asteroid classification (files smaller than this become asteroids)
-export const ASTEROID_SIZE_THRESHOLD = 100000; // 100KB
+// Maximum number of planets displayed (overflow goes to asteroid belt)
+export const MAX_PLANETS = 20;
 
-// Check if a file should be treated as an asteroid (small file)
-export function isAsteroid(node: FileNode): boolean {
-  return node.type === 'file' && node.size < ASTEROID_SIZE_THRESHOLD;
-}
-
-// Separate children into planets/satellites and asteroids
+// Separate children into planets (max 20) and asteroids (overflow)
+// Items are sorted by size (largest first) to determine which become planets
 export function classifyChildren(children: FileNode[]): {
   significantItems: FileNode[];
   asteroids: FileNode[];
 } {
-  const significantItems: FileNode[] = [];
-  const asteroids: FileNode[] = [];
+  // Sort by size descending (largest first)
+  const sorted = [...children].sort((a, b) => b.size - a.size);
 
-  children.forEach(child => {
-    if (child.type === 'directory' || !isAsteroid(child)) {
-      significantItems.push(child);
-    } else {
-      asteroids.push(child);
-    }
-  });
+  // Top MAX_PLANETS become planets, rest become asteroids
+  const significantItems = sorted.slice(0, MAX_PLANETS);
+  const asteroids = sorted.slice(MAX_PLANETS);
 
   return { significantItems, asteroids };
 }
@@ -70,7 +62,7 @@ export const typeColors: Record<string, string> = {
   text: '#22c55e',
   data: '#06b6d4',
   archive: '#6b7280',
-  directory: '#8b5cf6',
+  directory: '#ffffff', // White for directories (star/planet)
 };
 
 // Helper: format bytes to human readable

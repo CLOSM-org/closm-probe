@@ -5,35 +5,44 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 **Column Key:**
 - **Metaphor**: Astronomical concept
 - **Product Mapping**: What it represents in the product
-- **Details**: Specs, constraints, rationale, TBD items
+- **Details**: Specs, constraints, rationale
 - **Implementation**: File path + function
 
 ---
 
-## 1. Size Mappings
+## 1. Celestial Body Definitions
 
 | Metaphor | Product Mapping | Details | Implementation |
 |----------|-----------------|---------|----------------|
-| Sun | Current root directory | Fixed center point at (0,0,0), not scaled by size | `PhysicalStorageUniverse.tsx` |
-| Planet radius | Directory size | **Scale**: Logarithmic (log10)<br>**Base**: 0.8<br>**Factor**: 0.15<br>**Min clamp**: 1000B<br>**TBD**: Max radius limit, overlap prevention | `types.ts:calculateNodeRadius()` |
-| Satellite radius | File size | **Scale**: Logarithmic (log10)<br>**Base**: 0.4<br>**Factor**: 0.08<br>**Min clamp**: 100B<br>**TBD**: Max radius limit | `types.ts:calculateNodeRadius()` |
-| Asteroid | Small file (<100KB) | **Threshold**: 100,000 bytes<br>Clustered in belt rings rather than individual orbits | `types.ts:ASTEROID_SIZE_THRESHOLD` |
+| Star (恒星) | Currently open folder | Center fixed at (0,0,0), strong emission, no ring | `PhysicalStorageUniverse.tsx` |
+| Planet - Directory (惑星) | Direct child folder of star | White glowing sphere + ring (random tilt), ring thickness = child count | `DirectoryNode.tsx` |
+| Planet - File (惑星) | Direct child file of star | Octahedron shape, type-based color | `FileNode.tsx` |
+| Satellite (衛星) | Children of planet | Abstracted as ring (not individually rendered) | Ring on `DirectoryNode.tsx` |
+| Asteroid Belt | Overflow items (21st+) | Collected when planets exceed 20 | `AsteroidBelt.tsx` |
 
 ---
 
-## 2. Position Mappings
+## 2. Size Mappings
 
 | Metaphor | Product Mapping | Details | Implementation |
 |----------|-----------------|---------|----------------|
-| Planet orbit (depth 1) | Direct child of root | **Base radius**: 25 units<br>**Range**: 60%~140% of base (15-35 units)<br>Solid orbit line | `PhysicalStorageUniverse.tsx` |
-| Moon orbit (depth 2+) | Subdirectory/nested item | **Base radius**: 8 units<br>**Range**: 60%~140% of base (4.8-11.2 units)<br>Dashed orbit line | `PhysicalStorageUniverse.tsx` |
-| Asteroid belt (root) | Small files at root level | **Radius**: 40 units<br>Files <100KB collected into ring | `PhysicalStorageUniverse.tsx` |
-| Asteroid belt (nested) | Small files in subdirectory | Orbits parent directory position | `PhysicalStorageUniverse.tsx` |
+| Star size | Current folder | Fixed size, not scaled by content | `PhysicalStorageUniverse.tsx` |
+| Planet radius | Directory/File size | **Scale**: Logarithmic (log10)<br>**Base**: 0.8 (dir), 0.4 (file)<br>**Factor**: 0.15 (dir), 0.08 (file)<br>**Min clamp**: 1000B (dir), 100B (file) | `types.ts:calculateNodeRadius()` |
+| Ring thickness | Child count | Thicker ring = more children | `DirectoryNode.tsx` |
+
+---
+
+## 3. Position Mappings
+
+| Metaphor | Product Mapping | Details | Implementation |
+|----------|-----------------|---------|----------------|
+| Planet orbit | Child elements of star | **Base radius**: 25 units<br>**Range**: 60%~140% of base (15-35 units) | `PhysicalStorageUniverse.tsx` |
+| Asteroid belt | Overflow elements (21st+) | **Radius**: 40 units<br>Elements beyond 20 collected into ring | `PhysicalStorageUniverse.tsx` |
 | Star field | Background decoration | **Radius**: 120 units<br>**Count**: 1500 particles<br>No mapping to storage data | `UniverseCanvas.tsx` |
 
 ---
 
-## 3. Time Mappings
+## 4. Time Mappings
 
 | Metaphor | Product Mapping | Details | Implementation |
 |----------|-----------------|---------|----------------|
@@ -43,28 +52,39 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 
 ---
 
-## 4. Visual Mappings
+## 5. Visual Mappings
 
 | Metaphor | Product Mapping | Details | Implementation |
 |----------|-----------------|---------|----------------|
-| Celestial body color | File type | See Appendix A for color palette | `types.ts:typeColors` |
-| Emissive glow (directory) | Interaction state | **Normal**: 0.6<br>**Hover**: 0.8<br>**Selected**: 1.0 | `DirectoryNode.tsx` |
-| Emissive glow (file) | Interaction state | Similar to directory | `FileNode.tsx` |
-| Orbit line (depth 1) | Primary navigation level | **Style**: Solid<br>**Color**: #888888<br>**Opacity**: 0.5 | `OrbitLines.tsx` |
-| Orbit line (depth 2+) | Secondary level | **Style**: Dashed<br>**Color**: #555555<br>**Opacity**: 0.3 | `OrbitLines.tsx` |
+| Star color | Current folder | **Color**: White (#ffffff)<br>**Emission**: High (1.5+) | `DirectoryNode.tsx` (depth=0) |
+| Directory planet color | Folder | **Color**: White (#ffffff)<br>**Emission**: None (0) | `DirectoryNode.tsx` |
+| File planet color | File type | See Appendix A for color palette | `types.ts:typeColors` |
+| File planet shape | File (leaf node) | **Shape**: Octahedron (8-sided) | `FileNode.tsx` |
+| Directory ring | Has children | **Tilt**: Random<br>**Thickness**: Proportional to child count | `DirectoryNode.tsx` |
+| Orbit line | Planet path | **Style**: Solid<br>**Color**: #888888<br>**Opacity**: 0.5 | `OrbitLines.tsx` |
 | Bloom effect | Glow enhancement | **Intensity**: 0.7<br>**Luminance threshold**: 0.15 | `Effects.tsx` |
 
 ---
 
-## 5. Interaction Mappings
+## 6. Display Control
+
+| Attribute | Value | Details | Implementation |
+|-----------|-------|---------|----------------|
+| Max planets | 20 | Beyond 20, items go to asteroid belt | `PhysicalStorageUniverse.tsx` |
+| Selection method | Sort/Filter | User controls which 20 to display | TBD: UI component |
+| Overflow handling | Asteroid belt | 21st+ items collected in belt | `AsteroidBelt.tsx` |
+
+---
+
+## 7. Interaction Mappings
 
 | Metaphor | Product Mapping | Details | Implementation |
 |----------|-----------------|---------|----------------|
-| Orbit around sun (drag) | Camera rotation | OrbitControls with damping | `CameraController.tsx` |
+| Orbit around star (drag) | Camera rotation | OrbitControls with damping | `CameraController.tsx` |
 | Travel toward/away (scroll) | Zoom in/out | **Min distance**: 3<br>**Max distance**: 80 | `CameraController.tsx` |
 | Click celestial body | Select item | Shows details panel, no camera movement | `DirectoryNode.tsx`, `FileNode.tsx` |
-| Double-click directory | Drill down | Planet becomes new sun (context switch), camera resets to overview | `DirectoryNode.tsx` |
-| Double-click file | Approach celestial body | Camera moves to file position + offset | `CameraController.tsx:focusOn()` |
+| Double-click directory planet | Drill down | Planet becomes new star (context switch), camera resets | `DirectoryNode.tsx` |
+| Double-click file planet | Approach | Camera moves to file position + offset | `CameraController.tsx:focusOn()` |
 | Return to observatory | Reset camera view | Returns camera to initial [0, 12, 22] looking at center | `CameraController.tsx:resetView()` |
 
 ---
@@ -82,7 +102,7 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 | Text | Green | `#22c55e` |
 | Data | Teal | `#06b6d4` |
 | Archive | Gray | `#6b7280` |
-| Directory | Violet | `#8b5cf6` |
+| Directory | White | `#ffffff` |
 
 ---
 
@@ -99,9 +119,8 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 | StarField radius | 120 | `UniverseCanvas.tsx` |
 | StarField count | 1500 | `UniverseCanvas.tsx` |
 | Planet orbit baseRadius | 25 | `PhysicalStorageUniverse.tsx` |
-| Moon orbit baseRadius | 8 | `PhysicalStorageUniverse.tsx` |
-| Asteroid belt radius (root) | 40 | `PhysicalStorageUniverse.tsx` |
-| Asteroid size threshold | 100KB | `types.ts` |
+| Asteroid belt radius | 40 | `PhysicalStorageUniverse.tsx` |
+| Max displayed planets | 20 | `PhysicalStorageUniverse.tsx` |
 
 ---
 
@@ -111,8 +130,8 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 |-------|--------------|
 | Type definitions & helpers | `src/components/universe/types.ts` |
 | Scene composition | `src/components/universe/UniverseCanvas.tsx` |
-| Planet (directory) rendering | `src/components/universe/nodes/DirectoryNode.tsx` |
-| Satellite (file) rendering | `src/components/universe/nodes/FileNode.tsx` |
+| Directory planet rendering | `src/components/universe/nodes/DirectoryNode.tsx` |
+| File planet rendering | `src/components/universe/nodes/FileNode.tsx` |
 | Asteroid belt rendering | `src/components/universe/nodes/AsteroidBelt.tsx` |
 | Orbit visualization | `src/components/universe/effects/OrbitLines.tsx` |
 | Star field background | `src/components/universe/effects/StarField.tsx` |
@@ -122,16 +141,15 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 
 ---
 
-## TBD Items (Undefined/Under Discussion)
+## Appendix D: Terminology
 
-| Topic | Question | Current Status |
-|-------|----------|----------------|
-| Max planet radius | What's the upper limit to prevent overlap? | Not constrained |
-| Radius vs Volume | Should size map to radius or volume (r^3)? | Currently radius |
-| Sun scale | Should sun size reflect root directory size? | Fixed, not scaled |
-| Overlap prevention | How to handle planets that would overlap? | Relies on orbital spacing |
-| Asteroid density | Max asteroids per belt before performance degrades? | Not limited |
-| Satellite definition | Does "satellite" mean "file only" or "all child elements"? | Needs discussion |
+| Term | Japanese | Definition |
+|------|----------|------------|
+| Star | 恒星 | Currently open folder (center of view) |
+| Planet | 惑星 | Direct child of star (file or directory) |
+| Satellite | 衛星 | Child of planet (abstracted as ring) |
+| Asteroid | 小惑星 | Overflow items in belt |
+| Ring | リング | Visual indicator of children on directory planet |
 
 ---
 
