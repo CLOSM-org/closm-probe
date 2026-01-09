@@ -15,7 +15,7 @@ export function OrbitLines({ items }: OrbitLinesProps) {
     return items
       .filter(item => item.type === 'directory' && item.depth > 0 && item.parentPos)
       .map(item => {
-        const { parentPos, orbitRadius } = item;
+        const { parentPos, orbitRadius, depth } = item;
         if (!parentPos) return null;
 
         // Generate circle points
@@ -36,6 +36,7 @@ export function OrbitLines({ items }: OrbitLinesProps) {
         return {
           key: item.path,
           points,
+          depth,
         };
       })
       .filter(Boolean);
@@ -47,13 +48,13 @@ export function OrbitLines({ items }: OrbitLinesProps) {
         <Line
           key={orbit.key}
           points={orbit.points}
-          color="#4444aa"
-          opacity={0.2}
+          color={orbit.depth === 1 ? "#888888" : "#555555"}
+          opacity={orbit.depth === 1 ? 0.5 : 0.3}
           transparent
           lineWidth={1}
-          dashed
-          dashSize={0.3}
-          gapSize={0.2}
+          dashed={orbit.depth !== 1}
+          dashSize={0.5}
+          gapSize={0.3}
         />
       ))}
     </>
