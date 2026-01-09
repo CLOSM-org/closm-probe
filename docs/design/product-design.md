@@ -4,6 +4,8 @@
 **Last Updated**: 2026-01-08
 **Status**: Draft
 
+> **Note**: For current implementation values (colors, radii, thresholds), see [Metaphor Mapping Reference](../specifications/metaphor-mapping.md). This document describes design rationale and concepts.
+
 ---
 
 # Part I: The Universe Metaphor

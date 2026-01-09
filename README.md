@@ -103,6 +103,7 @@ npm start
 
 | Document | Description |
 |----------|-------------|
+| [Metaphor Mapping](./docs/specifications/metaphor-mapping.md) | Directory ↔ Universe reference |
 | [Product Design](./docs/design/product-design.md) | Full design specification |
 | [Canvas Rendering](./docs/specifications/canvas-rendering.md) | Technical rendering details |
 | [CLAUDE.md](./CLAUDE.md) | Development guidelines |

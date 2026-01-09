@@ -8,6 +8,7 @@ Documentation hub for CLOSM Probe - the 3D storage universe explorer.
 
 | Document | Description |
 |----------|-------------|
+| [Metaphor Mapping](./specifications/metaphor-mapping.md) | Directory ↔ Universe metaphor reference |
 | [Product Design](./design/product-design.md) | Full product design (metaphor-centric) |
 | [Canvas Rendering](./specifications/canvas-rendering.md) | 3D rendering technical specification |
 
@@ -21,6 +22,7 @@ docs/
 ├── design/                       # Design specifications
 │   └── product-design.md         # Product design document
 └── specifications/               # Technical specifications
+    ├── metaphor-mapping.md       # Directory ↔ Universe metaphor reference
     └── canvas-rendering.md       # Canvas 2D rendering details
 ```
 
@@ -43,18 +45,7 @@ The product design document is organized around the **Physical Space Metaphor** 
 
 ### Core Metaphor
 
-| Storage Concept | Celestial Metaphor |
-|-----------------|-------------------|
-| Root directory | Sun |
-| Directory | Planet |
-| File | Satellite |
-| Subdirectory | Moon |
-| Small files (<100KB) | Asteroid belt |
-| File size | Body size |
-| File type | Body color |
-| Recency | Brightness |
-| Creation date | Orbital radius |
-| Last modified | Angular position |
+See **[Metaphor Mapping Reference](./specifications/metaphor-mapping.md)** for complete directory ↔ universe mappings, visual encoding, and file references.
 
 ---
 

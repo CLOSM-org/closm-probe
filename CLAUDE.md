@@ -128,6 +128,7 @@ closm-probe/
 │   ├── design/
 │   │   └── product-design.md   # Product design spec
 │   └── specifications/
+│       ├── metaphor-mapping.md # Directory ↔ Universe reference
 │       └── canvas-rendering.md # Canvas 2D rendering spec
 ├── public/                     # Static assets
 └── CLAUDE.md                   # This file
@@ -188,6 +189,7 @@ get_observations(ids=[123, 122, 121], orderBy="date_desc")
 
 | Document | Purpose |
 |----------|---------|
+| `docs/specifications/metaphor-mapping.md` | Directory ↔ Universe metaphor reference (single source of truth) |
 | `docs/design/product-design.md` | Product design specification |
 | `docs/specifications/canvas-rendering.md` | Canvas 2D rendering details |
 | `src/components/` | Component implementations |
