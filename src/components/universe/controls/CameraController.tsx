@@ -5,8 +5,13 @@ import { useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
+// Define initial camera state (matches Canvas camera prop in UniverseCanvas.tsx)
+const INITIAL_CAMERA_POSITION: [number, number, number] = [0, 12, 22];
+const INITIAL_LOOK_AT: [number, number, number] = [0, 0, 0];
+
 export interface CameraControllerRef {
   focusOn: (position: [number, number, number]) => void;
+  resetView: () => void;
 }
 
 interface CameraControllerProps {
@@ -34,6 +39,12 @@ export const CameraController = forwardRef<CameraControllerRef, CameraController
         // Set camera target position (offset from the node)
         const offset = new THREE.Vector3(x, y + 2, z + 5);
         targetPosition.current = offset;
+        isAnimating.current = true;
+      },
+      resetView: () => {
+        // Reset camera to initial overview position
+        targetPosition.current = new THREE.Vector3(...INITIAL_CAMERA_POSITION);
+        targetLookAt.current = new THREE.Vector3(...INITIAL_LOOK_AT);
         isAnimating.current = true;
       },
     }));

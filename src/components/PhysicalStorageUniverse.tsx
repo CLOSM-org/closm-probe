@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { UniverseCanvas } from './universe/UniverseCanvas';
+import { CameraControllerRef } from './universe/controls/CameraController';
 import {
   FileNode,
   PositionedItem,
@@ -320,6 +321,9 @@ export default function PhysicalStorageUniverse() {
   const [currentRoot, setCurrentRoot] = useState<FileNode>(sampleFileSystem);
   const [navigationPath, setNavigationPath] = useState<string[]>(['root']);
 
+  // Camera control ref
+  const universeRef = useRef<CameraControllerRef>(null);
+
   // Generate items and asteroid belts from current root
   const { items, asteroidBelts } = useMemo(() => flattenWithPositions(currentRoot), [currentRoot]);
   const totalSize = sampleFileSystem.size;
@@ -333,8 +337,19 @@ export default function PhysicalStorageUniverse() {
         setCurrentRoot(node);
         setNavigationPath(item.path.split('/').filter(Boolean));
         setSelectedItem(null);
+
+        // Reset camera to overview after drill-down
+        // Use setTimeout to allow React to re-render with new items first
+        setTimeout(() => {
+          universeRef.current?.resetView();
+        }, 50);
       }
     }
+  }, []);
+
+  // File focus handler (when file is double-clicked)
+  const handleFileFocus = useCallback((item: PositionedItem) => {
+    setSelectedItem(item);
   }, []);
 
   // Navigate to specific level in breadcrumb
@@ -351,6 +366,11 @@ export default function PhysicalStorageUniverse() {
       }
     }
     setSelectedItem(null);
+
+    // Reset camera to overview after navigation
+    setTimeout(() => {
+      universeRef.current?.resetView();
+    }, 50);
   }, [navigationPath]);
 
   const selectedBreadcrumbs = selectedItem?.path.split('/').filter(Boolean) || [];
@@ -457,9 +477,10 @@ export default function PhysicalStorageUniverse() {
 
         {/* Main view */}
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-          {/* 3D Canvas */}
-          <div style={{ flex: '1 1 700px' }}>
+          {/* 3D Canvas with overlay controls */}
+          <div style={{ flex: '1 1 700px', position: 'relative' }}>
             <UniverseCanvas
+              ref={universeRef}
               items={items}
               asteroidBelts={asteroidBelts}
               selectedItem={selectedItem}
@@ -467,7 +488,40 @@ export default function PhysicalStorageUniverse() {
               onSelect={setSelectedItem}
               onHover={setHoveredItem}
               onDrillDown={handleDrillDown}
+              onFileFocus={handleFileFocus}
             />
+
+            {/* Reset View Button */}
+            <button
+              onClick={() => {
+                universeRef.current?.resetView();
+              }}
+              style={{
+                position: 'absolute',
+                bottom: '16px',
+                right: '16px',
+                padding: '8px 16px',
+                background: 'rgba(168, 85, 247, 0.3)',
+                border: '1px solid rgba(168, 85, 247, 0.5)',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '13px',
+                cursor: 'pointer',
+                backdropFilter: 'blur(4px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.5)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.3)';
+              }}
+            >
+              Reset View
+            </button>
           </div>
 
           {/* Detail Panel */}

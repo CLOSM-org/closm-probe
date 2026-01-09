@@ -62,8 +62,10 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 |----------|-----------------|---------|----------------|
 | Orbit around sun (drag) | Camera rotation | OrbitControls with damping | `CameraController.tsx` |
 | Travel toward/away (scroll) | Zoom in/out | **Min distance**: 3<br>**Max distance**: 80 | `CameraController.tsx` |
-| Click celestial body | Select item | Shows details panel | `DirectoryNode.tsx`, `FileNode.tsx` |
-| Double-click directory | Drill down | Planet becomes new sun (context switch) | `DirectoryNode.tsx` |
+| Click celestial body | Select item | Shows details panel, no camera movement | `DirectoryNode.tsx`, `FileNode.tsx` |
+| Double-click directory | Drill down | Planet becomes new sun (context switch), camera resets to overview | `DirectoryNode.tsx` |
+| Double-click file | Approach celestial body | Camera moves to file position + offset | `CameraController.tsx:focusOn()` |
+| Return to observatory | Reset camera view | Returns camera to initial [0, 12, 22] looking at center | `CameraController.tsx:resetView()` |
 
 ---
 
@@ -88,10 +90,12 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 
 | Parameter | Value | Location |
 |-----------|-------|----------|
-| Camera initial position | [0, 12, 22] | `UniverseCanvas.tsx` |
+| Camera initial position | [0, 12, 22] | `UniverseCanvas.tsx`, `CameraController.tsx:INITIAL_CAMERA_POSITION` |
 | Camera FOV | 55 | `UniverseCanvas.tsx` |
 | Camera minDistance | 3 | `CameraController.tsx` |
 | Camera maxDistance | 80 | `CameraController.tsx` |
+| Reset view position | [0, 12, 22] | `CameraController.tsx:INITIAL_CAMERA_POSITION` |
+| Reset view lookAt | [0, 0, 0] | `CameraController.tsx:INITIAL_LOOK_AT` |
 | StarField radius | 120 | `UniverseCanvas.tsx` |
 | StarField count | 1500 | `UniverseCanvas.tsx` |
 | Planet orbit baseRadius | 25 | `PhysicalStorageUniverse.tsx` |
@@ -127,6 +131,7 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 | Sun scale | Should sun size reflect root directory size? | Fixed, not scaled |
 | Overlap prevention | How to handle planets that would overlap? | Relies on orbital spacing |
 | Asteroid density | Max asteroids per belt before performance degrades? | Not limited |
+| Satellite definition | Does "satellite" mean "file only" or "all child elements"? | Needs discussion |
 
 ---
 
