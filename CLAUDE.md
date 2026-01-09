@@ -1,6 +1,6 @@
 # CLOSM Probe Development Guidelines
 
-**Last Updated**: 2026-01-08
+**Last Updated**: 2026-01-09
 
 Project rules and guidelines for Claude Code assistance.
 
@@ -48,6 +48,15 @@ Project rules and guidelines for Claude Code assistance.
 ### 4. Dev Server Management
 - **No unauthorized startup**: Only start dev server when instructed
 - **Use Port 3100**: Always use port 3100 for dev server
+
+### 5. Metaphor Mapping Policy (CRITICAL)
+- **`docs/specifications/metaphor-mapping.md` is the Single Source of Truth**
+- This file defines ALL metaphor mappings (universe ↔ storage)
+- **Bidirectional sync required**:
+  - When implementation changes → Update metaphor-mapping.md
+  - When metaphor-mapping.md changes → Update implementation
+- **Before implementing visual/spatial changes**: Check metaphor-mapping.md first
+- **TBD items**: Undefined mappings must be decided and documented before implementation
 
 ---
 
@@ -189,7 +198,7 @@ get_observations(ids=[123, 122, 121], orderBy="date_desc")
 
 | Document | Purpose |
 |----------|---------|
-| `docs/specifications/metaphor-mapping.md` | Directory ↔ Universe metaphor reference (single source of truth) |
+| **`docs/specifications/metaphor-mapping.md`** | **CRITICAL: Single Source of Truth for all metaphor definitions** |
 | `docs/design/product-design.md` | Product design specification |
 | `docs/specifications/canvas-rendering.md` | Canvas 2D rendering details |
 | `src/components/` | Component implementations |
