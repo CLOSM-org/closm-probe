@@ -86,12 +86,60 @@ export function formatTimeAgo(timestamp: number): string {
   return `${Math.floor(days / 30)}ヶ月前`;
 }
 
-// Helper: calculate node radius (log scale)
+// Size constants for radius calculation (enhanced contrast)
+const SIZE_LIMITS = {
+  file: {
+    minRadius: 0.15,  // Very small files barely visible
+    maxRadius: 2.5,   // Large files prominent
+    minLog: 2,        // 100B
+    maxLog: 9,        // 1GB
+  },
+  directory: {
+    minRadius: 0.25,  // Small directories compact
+    maxRadius: 3.0,   // Large directories prominent
+    minLog: 3,        // 1KB
+    maxLog: 10,       // 10GB
+  },
+};
+
+// Star (center) fixed radius - always largest
+export const STAR_RADIUS = 4.0;
+
+// Helper: calculate node radius based on size (log scale with min/max interpolation)
+// Creates ~6x difference between smallest and largest files
 export function calculateNodeRadius(size: number, type: 'file' | 'directory'): number {
-  const baseSize = type === 'directory' ? 0.8 : 0.4;
-  const scaleFactor = type === 'directory' ? 0.15 : 0.08;
-  const minSize = type === 'directory' ? 1000 : 100;
-  return baseSize + Math.log10(Math.max(size, minSize)) * scaleFactor;
+  const limits = SIZE_LIMITS[type];
+  const logSize = Math.log10(Math.max(size, 1));
+
+  // Clamp to range and interpolate
+  const normalizedLog = Math.max(0, Math.min(1,
+    (logSize - limits.minLog) / (limits.maxLog - limits.minLog)
+  ));
+
+  return limits.minRadius + normalizedLog * (limits.maxRadius - limits.minRadius);
+}
+
+// Planet radius limits for relative sizing
+export const PLANET_RADIUS = {
+  min: 0.4,
+  max: 2.5,
+};
+
+// Helper: calculate planet radius relative to displayed items
+// Ensures clear visual difference between smallest and largest items
+export function calculateRelativeRadius(
+  size: number,
+  minSize: number,
+  maxSize: number
+): number {
+  // If all items have same size, return middle value
+  if (maxSize === minSize) {
+    return (PLANET_RADIUS.min + PLANET_RADIUS.max) / 2;
+  }
+
+  // Linear interpolation between min and max radius based on relative size
+  const ratio = (size - minSize) / (maxSize - minSize);
+  return PLANET_RADIUS.min + ratio * (PLANET_RADIUS.max - PLANET_RADIUS.min);
 }
 
 // Helper: calculate brightness based on age

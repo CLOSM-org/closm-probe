@@ -171,7 +171,7 @@ function flattenWithPositions(
   siblingCount = 1,
   parentPos = { x: 0, y: 0, z: 0 },
   path = '',
-  maxDepth = 2
+  maxDepth = 1
 ): FlattenResult {
   const items: PositionedItem[] = [];
   const asteroidBelts: AsteroidBelt[] = [];
@@ -329,6 +329,20 @@ export default function PhysicalStorageUniverse() {
   const totalSize = sampleFileSystem.size;
   const currentSize = currentRoot.size;
 
+  // Calculate size range for planets (depth 1) for relative sizing
+  const sizeRange = useMemo(() => {
+    const planetSizes = items
+      .filter(item => item.depth === 1)
+      .map(item => item.size);
+    if (planetSizes.length === 0) {
+      return { min: 0, max: 0 };
+    }
+    return {
+      min: Math.min(...planetSizes),
+      max: Math.max(...planetSizes),
+    };
+  }, [items]);
+
   // Drill-down handler
   const handleDrillDown = useCallback((item: PositionedItem) => {
     if (item.type === 'directory' && item.children && item.children.length > 0) {
@@ -485,6 +499,7 @@ export default function PhysicalStorageUniverse() {
               asteroidBelts={asteroidBelts}
               selectedItem={selectedItem}
               hoveredItem={hoveredItem}
+              sizeRange={sizeRange}
               onSelect={setSelectedItem}
               onHover={setHoveredItem}
               onDrillDown={handleDrillDown}

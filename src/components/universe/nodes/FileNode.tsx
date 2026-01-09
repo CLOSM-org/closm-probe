@@ -4,29 +4,38 @@ import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { PositionedItem, typeColors, calculateNodeRadius, calculateBrightness, formatSize } from '../types';
+import { PositionedItem, typeColors, calculateRelativeRadius, calculateBrightness, formatSize } from '../types';
+
+interface SizeRange {
+  min: number;
+  max: number;
+}
 
 interface FileNodeProps {
   item: PositionedItem;
   isSelected: boolean;
   isHovered: boolean;
+  sizeRange: SizeRange;
   onSelect: (item: PositionedItem) => void;
   onHover: (item: PositionedItem | null) => void;
   onDoubleClick: (item: PositionedItem) => void;
+  onFocus?: (position: [number, number, number]) => void;
 }
 
 export function FileNode({
   item,
   isSelected,
   isHovered,
+  sizeRange,
   onSelect,
   onHover,
   onDoubleClick,
+  onFocus,
 }: FileNodeProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [localHover, setLocalHover] = useState(false);
 
-  const radius = calculateNodeRadius(item.size, 'file');
+  const radius = calculateRelativeRadius(item.size, sizeRange.min, sizeRange.max);
   const color = typeColors[item.fileType || ''] || '#888888';
   const brightness = calculateBrightness(item.lastModified);
 
@@ -116,6 +125,38 @@ export function FileNode({
             <div style={{ fontWeight: 'bold', color }}>{item.name}</div>
             <div style={{ fontSize: '9px', color: '#888' }}>{formatSize(item.size)}</div>
           </div>
+        </Html>
+      )}
+
+      {/* Focus button - shows when selected */}
+      {isSelected && onFocus && (
+        <Html
+          position={[radius + 0.5, 0, 0]}
+          center
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onFocus([item.x, item.y, item.z]);
+            }}
+            style={{
+              background: 'rgba(168, 85, 247, 0.8)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              color: 'white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            }}
+            title="Focus"
+          >
+            🎯
+          </button>
         </Html>
       )}
     </group>

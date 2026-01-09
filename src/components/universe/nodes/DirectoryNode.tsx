@@ -4,31 +4,47 @@ import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { PositionedItem, calculateNodeRadius, formatSize } from '../types';
+import { PositionedItem, calculateRelativeRadius, formatSize, STAR_RADIUS } from '../types';
+
+interface SizeRange {
+  min: number;
+  max: number;
+}
 
 interface DirectoryNodeProps {
   item: PositionedItem;
   isSelected: boolean;
   isHovered: boolean;
+  sizeRange: SizeRange;
   onSelect: (item: PositionedItem) => void;
   onHover: (item: PositionedItem | null) => void;
   onDoubleClick: (item: PositionedItem) => void;
+  onFocus?: (position: [number, number, number]) => void;
 }
 
 export function DirectoryNode({
   item,
   isSelected,
   isHovered,
+  sizeRange,
   onSelect,
   onHover,
   onDoubleClick,
+  onFocus,
 }: DirectoryNodeProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
   const [localHover, setLocalHover] = useState(false);
+  const [satelliteScale, setSatelliteScale] = useState(0);
 
-  const radius = calculateNodeRadius(item.size, 'directory');
-  const color = '#ffffff'; // White for directory planets
+  // Check if this is the star (center, depth=0) - used for radius and glow
+  const isStar = item.depth === 0;
+
+  // Star has fixed radius (largest), planets use relative sizing
+  const radius = isStar
+    ? STAR_RADIUS
+    : calculateRelativeRadius(item.size, sizeRange.min, sizeRange.max);
+  const color = '#ffffff'; // White for directory planets/star
 
   // Calculate ring tilt based on item name (deterministic random)
   const ringTilt = useMemo(() => {
@@ -46,14 +62,20 @@ export function DirectoryNode({
   const childCount = item.children?.length || 0;
   const ringThickness = radius * (0.08 + Math.min(childCount, 50) * 0.004); // Base + proportional to children
 
-  // Pulse animation for directories
-  useFrame(({ clock }) => {
+  // Pulse animation for directories and satellite expansion
+  useFrame(({ clock }, delta) => {
     if (meshRef.current) {
       const pulse = 1 + Math.sin(clock.elapsedTime * 1.5) * 0.05;
       meshRef.current.scale.setScalar(pulse);
     }
     if (ringRef.current) {
       ringRef.current.rotation.z = clock.elapsedTime * 0.2;
+    }
+    // Animate satellite scale on hover
+    if (localHover && satelliteScale < 1) {
+      setSatelliteScale(prev => Math.min(1, prev + delta * 4));
+    } else if (!localHover && satelliteScale > 0) {
+      setSatelliteScale(prev => Math.max(0, prev - delta * 4));
     }
   });
 
@@ -82,9 +104,6 @@ export function DirectoryNode({
   };
 
   const showLabel = isSelected || isHovered || localHover;
-
-  // Check if this is the star (center, depth=0)
-  const isStar = item.depth === 0;
 
   // Only stars emit light, planets do not glow
   const glowIntensity = isStar
@@ -156,6 +175,68 @@ export function DirectoryNode({
             <div style={{ fontSize: '10px', color: '#888' }}>{formatSize(item.size)}</div>
           </div>
         </Html>
+      )}
+
+      {/* Focus button - shows when selected */}
+      {isSelected && onFocus && (
+        <Html
+          position={[radius + 0.8, 0, 0]}
+          center
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onFocus([item.x, item.y, item.z]);
+            }}
+            style={{
+              background: 'rgba(168, 85, 247, 0.8)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '14px',
+              color: 'white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            }}
+            title="Focus"
+          >
+            🎯
+          </button>
+        </Html>
+      )}
+
+      {/* Satellites - show on hover with animation (not for star) */}
+      {!isStar && satelliteScale > 0 && item.children && item.children.length > 0 && (
+        <group rotation={[ringTilt.x, 0, ringTilt.z]}>
+          {item.children.slice(0, 12).map((child, index) => {
+            const satelliteAngle = (index / Math.min(item.children!.length, 12)) * Math.PI * 2;
+            const satelliteRadius = radius * 2.5;
+            const satelliteSize = (child.type === 'directory' ? 0.3 : 0.25) * satelliteScale;
+            const sx = Math.cos(satelliteAngle) * satelliteRadius;
+            const sz = Math.sin(satelliteAngle) * satelliteRadius;
+
+            return (
+              <mesh key={child.name} position={[sx, 0, sz]} scale={satelliteScale}>
+                {child.type === 'directory' ? (
+                  <sphereGeometry args={[satelliteSize / satelliteScale, 8, 8]} />
+                ) : (
+                  <octahedronGeometry args={[satelliteSize / satelliteScale, 0]} />
+                )}
+                <meshStandardMaterial
+                  color={child.type === 'directory' ? '#ffffff' : '#61dafb'}
+                  emissive={child.type === 'directory' ? '#ffffff' : '#61dafb'}
+                  emissiveIntensity={0.3}
+                  transparent
+                  opacity={satelliteScale}
+                />
+              </mesh>
+            );
+          })}
+        </group>
       )}
     </group>
   );

@@ -11,11 +11,17 @@ import { AsteroidBeltRing } from './nodes/AsteroidBelt';
 import { Effects } from './postprocessing/Effects';
 import { PositionedItem, AsteroidBelt } from './types';
 
+interface SizeRange {
+  min: number;
+  max: number;
+}
+
 interface UniverseCanvasProps {
   items: PositionedItem[];
   asteroidBelts: AsteroidBelt[];
   selectedItem: PositionedItem | null;
   hoveredItem: PositionedItem | null;
+  sizeRange: SizeRange;
   onSelect: (item: PositionedItem | null) => void;
   onHover: (item: PositionedItem | null) => void;
   onDrillDown?: (item: PositionedItem) => void;
@@ -27,6 +33,7 @@ function Scene({
   asteroidBelts,
   selectedItem,
   hoveredItem,
+  sizeRange,
   onSelect,
   onHover,
   onDrillDown,
@@ -57,6 +64,13 @@ function Scene({
     }
   };
 
+  // Handle focus button click
+  const handleFocus = useCallback((position: [number, number, number]) => {
+    if (cameraRef.current) {
+      cameraRef.current.focusOn(position);
+    }
+  }, [cameraRef]);
+
   return (
     <>
       {/* Lighting */}
@@ -81,9 +95,11 @@ function Scene({
             item={item}
             isSelected={selectedItem?.path === item.path}
             isHovered={hoveredItem?.path === item.path}
+            sizeRange={sizeRange}
             onSelect={onSelect}
             onHover={onHover}
             onDoubleClick={handleDoubleClick}
+            onFocus={handleFocus}
           />
         ) : (
           <FileNode
@@ -91,9 +107,11 @@ function Scene({
             item={item}
             isSelected={selectedItem?.path === item.path}
             isHovered={hoveredItem?.path === item.path}
+            sizeRange={sizeRange}
             onSelect={onSelect}
             onHover={onHover}
             onDoubleClick={handleDoubleClick}
+            onFocus={handleFocus}
           />
         )
       )}
@@ -121,6 +139,7 @@ export const UniverseCanvas = forwardRef<CameraControllerRef, UniverseCanvasProp
     asteroidBelts,
     selectedItem,
     hoveredItem,
+    sizeRange,
     onSelect,
     onHover,
     onDrillDown,
@@ -163,6 +182,7 @@ export const UniverseCanvas = forwardRef<CameraControllerRef, UniverseCanvasProp
               asteroidBelts={asteroidBelts}
               selectedItem={selectedItem}
               hoveredItem={hoveredItem}
+              sizeRange={sizeRange}
               onSelect={onSelect}
               onHover={onHover}
               onDrillDown={onDrillDown}

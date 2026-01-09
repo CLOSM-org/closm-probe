@@ -26,8 +26,9 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 
 | Metaphor | Product Mapping | Details | Implementation |
 |----------|-----------------|---------|----------------|
-| Star size | Current folder | Fixed size, not scaled by content | `PhysicalStorageUniverse.tsx` |
-| Planet radius | Directory/File size | **Scale**: Logarithmic (log10)<br>**Base**: 0.8 (dir), 0.4 (file)<br>**Factor**: 0.15 (dir), 0.08 (file)<br>**Min clamp**: 1000B (dir), 100B (file) | `types.ts:calculateNodeRadius()` |
+| Star radius | Current folder | **Fixed**: 2.5 (always largest) | `types.ts:STAR_RADIUS` |
+| Directory planet radius | Directory size | **Range**: 0.5 ~ 2.0<br>**Scale**: log10 interpolation<br>**Size range**: 1KB ~ 10GB | `types.ts:calculateNodeRadius()` |
+| File planet radius | File size | **Range**: 0.3 ~ 1.8 (~6x difference)<br>**Scale**: log10 interpolation<br>**Size range**: 100B ~ 1GB | `types.ts:calculateNodeRadius()` |
 | Ring thickness | Child count | Thicker ring = more children | `DirectoryNode.tsx` |
 
 ---
@@ -70,9 +71,11 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 
 | Attribute | Value | Details | Implementation |
 |-----------|-------|---------|----------------|
+| Max depth | 1 | Only star (depth 0) and planets (depth 1) displayed<br>Satellites (depth 2+) abstracted as rings | `PhysicalStorageUniverse.tsx` |
 | Max planets | 20 | Beyond 20, items go to asteroid belt | `PhysicalStorageUniverse.tsx` |
 | Selection method | Sort/Filter | User controls which 20 to display | TBD: UI component |
 | Overflow handling | Asteroid belt | 21st+ items collected in belt | `AsteroidBelt.tsx` |
+| Satellite preview | Hover expansion | Directory hover shows up to 12 satellites with animation<br>Aligned with ring rotation axis | `DirectoryNode.tsx` |
 
 ---
 
@@ -82,7 +85,9 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 |----------|-----------------|---------|----------------|
 | Orbit around star (drag) | Camera rotation | OrbitControls with damping | `CameraController.tsx` |
 | Travel toward/away (scroll) | Zoom in/out | **Min distance**: 3<br>**Max distance**: 80 | `CameraController.tsx` |
-| Click celestial body | Select item | Shows details panel, no camera movement | `DirectoryNode.tsx`, `FileNode.tsx` |
+| Hover directory planet | Satellite preview | Shows up to 12 children with scale animation<br>Aligned with ring tilt | `DirectoryNode.tsx` |
+| Click celestial body | Select item | Shows details panel + focus button | `DirectoryNode.tsx`, `FileNode.tsx` |
+| Focus button click | Camera zoom | Camera moves to celestial body position | `CameraController.tsx:focusOn()` |
 | Double-click directory planet | Drill down | Planet becomes new star (context switch), camera resets | `DirectoryNode.tsx` |
 | Double-click file planet | Approach | Camera moves to file position + offset | `CameraController.tsx:focusOn()` |
 | Return to observatory | Reset camera view | Returns camera to initial [0, 12, 22] looking at center | `CameraController.tsx:resetView()` |
@@ -121,6 +126,8 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 | Planet orbit baseRadius | 25 | `PhysicalStorageUniverse.tsx` |
 | Asteroid belt radius | 40 | `PhysicalStorageUniverse.tsx` |
 | Max displayed planets | 20 | `PhysicalStorageUniverse.tsx` |
+| Max depth | 1 | `PhysicalStorageUniverse.tsx` |
+| Satellite preview count | 12 | `DirectoryNode.tsx` |
 
 ---
 
