@@ -96,8 +96,8 @@ export function formatTimeAgo(timestamp: number): string {
 
 // Helper: calculate node radius (log scale)
 export function calculateNodeRadius(size: number, type: 'file' | 'directory'): number {
-  const baseSize = type === 'directory' ? 0.5 : 0.25;
-  const scaleFactor = type === 'directory' ? 0.1 : 0.05;
+  const baseSize = type === 'directory' ? 0.8 : 0.4;
+  const scaleFactor = type === 'directory' ? 0.15 : 0.08;
   const minSize = type === 'directory' ? 1000 : 100;
   return baseSize + Math.log10(Math.max(size, minSize)) * scaleFactor;
 }

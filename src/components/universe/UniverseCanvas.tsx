@@ -60,7 +60,7 @@ function Scene({
       <CameraController ref={cameraRef} />
 
       {/* Background stars */}
-      <StarField count={3000} radius={80} />
+      <StarField count={1500} radius={200} />
 
       {/* Orbit lines */}
       <OrbitLines items={items} />
@@ -137,8 +137,8 @@ export function UniverseCanvas({
   return (
     <div style={{ width: '100%', height: '500px', borderRadius: '16px', overflow: 'hidden' }}>
       <Canvas
-        camera={{ position: [0, 8, 15], fov: 60 }}
-        style={{ background: 'linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%)' }}
+        camera={{ position: [0, 12, 22], fov: 55 }}
+        style={{ background: '#000000' }}
         onClick={handleCanvasClick}
       >
         <Suspense fallback={null}>

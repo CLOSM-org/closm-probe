@@ -63,7 +63,7 @@ export function FileNode({
   };
 
   const showLabel = isSelected || isHovered || localHover;
-  const glowIntensity = isSelected ? 0.8 : isHovered || localHover ? 0.6 : brightness * 0.3;
+  const glowIntensity = isSelected ? 1.0 : isHovered || localHover ? 0.8 : brightness * 0.4 + 0.4;
 
   return (
     <group position={[item.x, item.y, item.z]}>

@@ -66,7 +66,7 @@ export function DirectoryNode({
   };
 
   const showLabel = isSelected || isHovered || localHover;
-  const glowIntensity = isSelected ? 0.8 : isHovered || localHover ? 0.5 : 0.2;
+  const glowIntensity = isSelected ? 1.0 : isHovered || localHover ? 0.8 : 0.6;
 
   return (
     <group position={[item.x, item.y, item.z]}>

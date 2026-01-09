@@ -86,10 +86,10 @@ export function StarField({ count = 2000, radius = 100 }: StarFieldProps) {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={1}
+        size={0.6}
         vertexColors
         transparent
-        opacity={0.8}
+        opacity={0.4}
         sizeAttenuation
         depthWrite={false}
       />

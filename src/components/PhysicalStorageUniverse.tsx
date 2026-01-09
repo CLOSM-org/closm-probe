@@ -203,7 +203,7 @@ function flattenWithPositions(
           id: `belt-${currentPath}`,
           parentPath: currentPath,
           parentPos: { x: 0, y: 0, z: 0 },
-          orbitRadius: 5.5, // Outer orbit for asteroid belt
+          orbitRadius: 40, // Outer orbit for asteroid belt
           files: asteroids,
           count: asteroids.length,
           totalSize: asteroids.reduce((sum, a) => sum + a.size, 0),
@@ -234,7 +234,7 @@ function flattenWithPositions(
   }
 
   // Calculate orbital radius based on creation order (newer = inner)
-  const baseRadius = depth === 1 ? 4 : 1.5;
+  const baseRadius = depth === 1 ? 25 : 8;
   const orbitRadius = calculateOrbitRadiusByOrder(sortedRadiusIndex, siblingCount, baseRadius);
 
   // Calculate angle based on sorted position (equal spacing)
@@ -268,7 +268,7 @@ function flattenWithPositions(
         id: `belt-${currentPath}`,
         parentPath: currentPath,
         parentPos: { x, y, z },
-        orbitRadius: 2.0, // Outer orbit relative to parent
+        orbitRadius: 10, // Outer orbit relative to parent
         files: asteroids,
         count: asteroids.length,
         totalSize: asteroids.reduce((sum, a) => sum + a.size, 0),
