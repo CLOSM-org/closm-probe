@@ -65,8 +65,14 @@ export const typeColors: Record<string, string> = {
   directory: '#ffffff', // White for directories (star/planet)
 };
 
+// SIZE_UNKNOWN marker for items with pending size calculation
+export const SIZE_UNKNOWN = -1;
+
 // Helper: format bytes to human readable
 export function formatSize(bytes: number): string {
+  // Handle unknown size (calculating)
+  if (bytes === SIZE_UNKNOWN) return '計算中...';
+  if (bytes < 0) return '---';
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';

@@ -9,9 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@react-three/drei": "^9.122.0",
-    "@react-three/fiber": "^8.18.0",
-    "@react-three/postprocessing": "^2.16.4",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -21,8 +21,8 @@
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
-    "@types/three": "^0.172.0",
     "@types/react-dom": "^19",
+    "@types/three": "^0.172.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",

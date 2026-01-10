@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { UniverseCanvas } from './universe/UniverseCanvas';
 import { CameraControllerRef } from './universe/controls/CameraController';
 import {
@@ -16,127 +16,11 @@ import {
   sortByCreatedAt,
   classifyChildren,
 } from './universe/types';
-
-// Time constants for sample data
-const DAY = 86400000;
-const WEEK = DAY * 7;
-const MONTH = DAY * 30;
-
-// Sample file system data (will be replaced with Google Drive API)
-const sampleFileSystem: FileNode = {
-  name: 'root',
-  type: 'directory',
-  size: 0,
-  createdAt: Date.now() - MONTH * 12,
-  children: [
-    {
-      name: 'プロジェクト',
-      type: 'directory',
-      size: 0,
-      createdAt: Date.now() - MONTH * 6,
-      lastModified: Date.now() - DAY,
-      children: [
-        {
-          name: 'WebApp',
-          type: 'directory',
-          size: 0,
-          createdAt: Date.now() - MONTH * 3,
-          lastModified: Date.now() - DAY,
-          children: [
-            { name: 'index.html', type: 'file', fileType: 'code', size: 15000, createdAt: Date.now() - MONTH * 3, lastModified: Date.now() - DAY },
-            { name: 'style.css', type: 'file', fileType: 'code', size: 8000, createdAt: Date.now() - MONTH * 3, lastModified: Date.now() - DAY * 2 },
-            { name: 'app.js', type: 'file', fileType: 'code', size: 45000, createdAt: Date.now() - MONTH * 2, lastModified: Date.now() - 3600000 },
-            { name: 'bundle.min.js', type: 'file', fileType: 'code', size: 250000, createdAt: Date.now() - MONTH, lastModified: Date.now() - WEEK },
-          ]
-        },
-        {
-          name: 'デザイン',
-          type: 'directory',
-          size: 0,
-          createdAt: Date.now() - MONTH * 6,
-          lastModified: Date.now() - DAY,
-          children: [
-            { name: 'mockup_v1.fig', type: 'file', fileType: 'design', size: 5200000, createdAt: Date.now() - MONTH * 6, lastModified: Date.now() - MONTH * 2 },
-            { name: 'mockup_v2.fig', type: 'file', fileType: 'design', size: 8100000, createdAt: Date.now() - MONTH, lastModified: Date.now() - DAY },
-            { name: 'icons.svg', type: 'file', fileType: 'image', size: 120000, createdAt: Date.now() - MONTH * 4, lastModified: Date.now() - MONTH },
-            { name: 'hero_image.png', type: 'file', fileType: 'image', size: 3500000, createdAt: Date.now() - MONTH * 5, lastModified: Date.now() - MONTH * 2 },
-          ]
-        },
-        {
-          name: 'ドキュメント',
-          type: 'directory',
-          size: 0,
-          createdAt: Date.now() - MONTH * 6,
-          lastModified: Date.now() - DAY,
-          children: [
-            { name: '企画書.pdf', type: 'file', fileType: 'pdf', size: 2800000, createdAt: Date.now() - MONTH * 6, lastModified: Date.now() - MONTH * 2 },
-            { name: 'API仕様.md', type: 'file', fileType: 'doc', size: 35000, createdAt: Date.now() - MONTH * 2, lastModified: Date.now() - DAY * 2 },
-            { name: '議事録.txt', type: 'file', fileType: 'text', size: 12000, createdAt: Date.now() - WEEK, lastModified: Date.now() - DAY / 2 },
-          ]
-        }
-      ]
-    },
-    {
-      name: 'メディア',
-      type: 'directory',
-      size: 0,
-      createdAt: Date.now() - MONTH * 10,
-      lastModified: Date.now() - WEEK,
-      children: [
-        {
-          name: '写真',
-          type: 'directory',
-          size: 0,
-          createdAt: Date.now() - MONTH * 10,
-          lastModified: Date.now() - MONTH,
-          children: [
-            { name: 'vacation_001.jpg', type: 'file', fileType: 'image', size: 4200000, createdAt: Date.now() - MONTH * 10, lastModified: Date.now() - MONTH * 10 },
-            { name: 'vacation_002.jpg', type: 'file', fileType: 'image', size: 3800000, createdAt: Date.now() - MONTH * 10, lastModified: Date.now() - MONTH * 10 },
-            { name: 'vacation_003.jpg', type: 'file', fileType: 'image', size: 4500000, createdAt: Date.now() - MONTH * 10, lastModified: Date.now() - MONTH * 10 },
-            { name: 'screenshot.png', type: 'file', fileType: 'image', size: 850000, createdAt: Date.now() - WEEK, lastModified: Date.now() - WEEK },
-          ]
-        },
-        {
-          name: '動画',
-          type: 'directory',
-          size: 0,
-          createdAt: Date.now() - MONTH * 8,
-          lastModified: Date.now() - MONTH * 2,
-          children: [
-            { name: 'demo_recording.mp4', type: 'file', fileType: 'video', size: 125000000, createdAt: Date.now() - MONTH * 2, lastModified: Date.now() - MONTH * 2 },
-            { name: 'tutorial.mp4', type: 'file', fileType: 'video', size: 89000000, createdAt: Date.now() - MONTH * 8, lastModified: Date.now() - MONTH * 6 },
-          ]
-        }
-      ]
-    },
-    {
-      name: 'バックアップ',
-      type: 'directory',
-      size: 0,
-      createdAt: Date.now() - MONTH * 12,
-      lastModified: Date.now() - WEEK,
-      children: [
-        { name: 'db_backup_2024.sql', type: 'file', fileType: 'data', size: 45000000, createdAt: Date.now() - WEEK, lastModified: Date.now() - WEEK },
-        { name: 'config_backup.zip', type: 'file', fileType: 'archive', size: 12000000, createdAt: Date.now() - MONTH * 12, lastModified: Date.now() - MONTH * 2 },
-      ]
-    }
-  ]
-};
-
-// Calculate directory sizes recursively
-function calculateSizes(node: FileNode): number {
-  if (node.type === 'file') {
-    return node.size;
-  }
-  let total = 0;
-  if (node.children) {
-    node.children.forEach(child => {
-      total += calculateSizes(child);
-    });
-  }
-  node.size = total;
-  return total;
-}
+import {
+  getAvailableRoots,
+  readDirectoryStructure,
+  getDirectorySize,
+} from '@/app/actions/filesystem';
 
 // Find node by path
 function findNodeByPath(root: FileNode, path: string): FileNode | null {
@@ -300,9 +184,6 @@ function flattenWithPositions(
   return { items, asteroidBelts };
 }
 
-// Initialize sizes
-calculateSizes(sampleFileSystem);
-
 // Helper: shade color
 function shadeColor(color: string, percent: number): string {
   const num = parseInt(color.replace('#', ''), 16);
@@ -313,21 +194,166 @@ function shadeColor(color: string, percent: number): string {
   return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 }
 
+// Cache type for loaded directories
+interface DirectoryCache {
+  [path: string]: FileNode;
+}
+
 export default function PhysicalStorageUniverse() {
   const [selectedItem, setSelectedItem] = useState<PositionedItem | null>(null);
   const [hoveredItem, setHoveredItem] = useState<PositionedItem | null>(null);
 
+  // File system state
+  const [rootFileSystem, setRootFileSystem] = useState<FileNode | null>(null);
+  const [availableRoots, setAvailableRoots] = useState<{ path: string; name: string }[]>([]);
+  const [selectedRootPath, setSelectedRootPath] = useState<string>('');
+  const [customPath, setCustomPath] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [_showPathInput, setShowPathInput] = useState(false);
+
+  // Cache for expanded directories
+  const cacheRef = useRef<DirectoryCache>({});
+
   // Navigation state for drill-down
-  const [currentRoot, setCurrentRoot] = useState<FileNode>(sampleFileSystem);
-  const [navigationPath, setNavigationPath] = useState<string[]>(['root']);
+  const [currentRoot, setCurrentRoot] = useState<FileNode | null>(null);
+  const [navigationPath, setNavigationPath] = useState<string[]>([]);
 
   // Camera control ref
   const universeRef = useRef<CameraControllerRef>(null);
 
+  // Load available roots on mount
+  useEffect(() => {
+    const loadRoots = async () => {
+      const result = await getAvailableRoots();
+      if (result.success && result.roots) {
+        setAvailableRoots(result.roots);
+      }
+    };
+    loadRoots();
+  }, []);
+
+  // Size cache: stores calculated sizes by full path
+  const sizeCacheRef = useRef<{ [path: string]: number }>({});
+
+  // Load directory structure (fast, without recursive size calculation)
+  const loadDirectory = useCallback(async (dirPath: string, depth: number = 2) => {
+    // Check structure cache first
+    if (cacheRef.current[dirPath]) {
+      return cacheRef.current[dirPath];
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Use structure-only loading for fast navigation
+      const result = await readDirectoryStructure(dirPath, depth);
+      if (result.success && result.data) {
+        cacheRef.current[dirPath] = result.data;
+        return result.data;
+      } else {
+        setError(result.error || 'Failed to read directory');
+        return null;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Calculate sizes for directories in background
+  const calculateSizesInBackground = useCallback(async (
+    rootPath: string,
+    node: FileNode,
+    onSizeUpdate: () => void
+  ) => {
+    // Build full path for this node
+    const nodePath = rootPath;
+
+    // Helper to recursively calculate sizes
+    const processNode = async (currentNode: FileNode, currentPath: string) => {
+      if (currentNode.type === 'file') {
+        return; // Files already have size from stat
+      }
+
+      // Check cache first
+      if (sizeCacheRef.current[currentPath] !== undefined) {
+        currentNode.size = sizeCacheRef.current[currentPath];
+        onSizeUpdate();
+        return;
+      }
+
+      // Calculate size for this directory
+      try {
+        const result = await getDirectorySize(currentPath);
+        if (result.success && result.size !== undefined) {
+          currentNode.size = result.size;
+          sizeCacheRef.current[currentPath] = result.size;
+          onSizeUpdate();
+        }
+      } catch {
+        // Keep size as unknown on error
+      }
+
+      // Process children (but don't wait - let them run in parallel)
+      if (currentNode.children) {
+        for (const child of currentNode.children) {
+          if (child.type === 'directory') {
+            const childPath = `${currentPath}/${child.name}`;
+            // Don't await - let it run in background
+            processNode(child, childPath);
+          }
+        }
+      }
+    };
+
+    await processNode(node, nodePath);
+  }, []);
+
+  // Handle root selection
+  const handleSelectRoot = useCallback(async (rootPath: string) => {
+    setSelectedRootPath(rootPath);
+    setShowPathInput(false);
+
+    const data = await loadDirectory(rootPath);
+    if (data) {
+      setRootFileSystem(data);
+      setCurrentRoot(data);
+      setNavigationPath([data.name]);
+      setSelectedItem(null);
+
+      setTimeout(() => {
+        universeRef.current?.resetView();
+      }, 50);
+
+      // Start background size calculation
+      calculateSizesInBackground(rootPath, data, () => {
+        // Force re-render when sizes are updated
+        setRootFileSystem(prev => prev ? { ...prev } : null);
+      });
+    }
+  }, [loadDirectory, calculateSizesInBackground]);
+
+  // Handle custom path input
+  const handleCustomPathSubmit = useCallback(async () => {
+    if (customPath.trim()) {
+      await handleSelectRoot(customPath.trim());
+    }
+  }, [customPath, handleSelectRoot]);
+
   // Generate items and asteroid belts from current root
-  const { items, asteroidBelts } = useMemo(() => flattenWithPositions(currentRoot), [currentRoot]);
-  const totalSize = sampleFileSystem.size;
-  const currentSize = currentRoot.size;
+  const { items, asteroidBelts } = useMemo(() => {
+    if (!currentRoot) {
+      return { items: [], asteroidBelts: [] };
+    }
+    return flattenWithPositions(currentRoot);
+  }, [currentRoot]);
+
+  const totalSize = rootFileSystem?.size || 0;
+  const currentSize = currentRoot?.size || 0;
 
   // Calculate size range for planets (depth 1) for relative sizing
   const sizeRange = useMemo(() => {
@@ -343,23 +369,48 @@ export default function PhysicalStorageUniverse() {
     };
   }, [items]);
 
-  // Drill-down handler
-  const handleDrillDown = useCallback((item: PositionedItem) => {
-    if (item.type === 'directory' && item.children && item.children.length > 0) {
-      const node = findNodeByPath(sampleFileSystem, item.path);
-      if (node) {
-        setCurrentRoot(node);
-        setNavigationPath(item.path.split('/').filter(Boolean));
-        setSelectedItem(null);
+  // Drill-down handler with lazy loading (unlimited depth)
+  const handleDrillDown = useCallback(async (item: PositionedItem) => {
+    if (!rootFileSystem) return;
 
-        // Reset camera to overview after drill-down
-        // Use setTimeout to allow React to re-render with new items first
-        setTimeout(() => {
-          universeRef.current?.resetView();
-        }, 50);
+    if (item.type === 'directory') {
+      // Find the node in current tree
+      const node = findNodeByPath(rootFileSystem, item.path);
+      if (node) {
+        // Build full path from root
+        const pathParts = item.path.split('/').slice(1);
+        const fullPath = pathParts.length > 0
+          ? selectedRootPath + '/' + pathParts.join('/')
+          : selectedRootPath;
+
+        // If node has no children loaded yet (or empty children), load them
+        if (!node.children || node.children.length === 0) {
+          const expanded = await loadDirectory(fullPath, 2);
+          if (expanded) {
+            // Merge expanded data into the tree
+            node.children = expanded.children;
+
+            // Start background size calculation for new children
+            calculateSizesInBackground(fullPath, node, () => {
+              setRootFileSystem(prev => prev ? { ...prev } : null);
+            });
+          }
+        }
+
+        // Navigate even if children couldn't be loaded
+        if (node.children && node.children.length > 0) {
+          setCurrentRoot(node);
+          setNavigationPath(item.path.split('/').filter(Boolean));
+          setSelectedItem(null);
+
+          // Reset camera to overview after drill-down
+          setTimeout(() => {
+            universeRef.current?.resetView();
+          }, 50);
+        }
       }
     }
-  }, []);
+  }, [rootFileSystem, selectedRootPath, loadDirectory, calculateSizesInBackground]);
 
   // File focus handler (when file is double-clicked)
   const handleFileFocus = useCallback((item: PositionedItem) => {
@@ -368,12 +419,14 @@ export default function PhysicalStorageUniverse() {
 
   // Navigate to specific level in breadcrumb
   const navigateToLevel = useCallback((index: number) => {
+    if (!rootFileSystem) return;
+
     if (index === 0) {
-      setCurrentRoot(sampleFileSystem);
-      setNavigationPath(['root']);
+      setCurrentRoot(rootFileSystem);
+      setNavigationPath([rootFileSystem.name]);
     } else {
       const targetPath = navigationPath.slice(0, index + 1).join('/');
-      const node = findNodeByPath(sampleFileSystem, targetPath);
+      const node = findNodeByPath(rootFileSystem, targetPath);
       if (node) {
         setCurrentRoot(node);
         setNavigationPath(navigationPath.slice(0, index + 1));
@@ -385,9 +438,185 @@ export default function PhysicalStorageUniverse() {
     setTimeout(() => {
       universeRef.current?.resetView();
     }, 50);
-  }, [navigationPath]);
+  }, [navigationPath, rootFileSystem]);
 
   const selectedBreadcrumbs = selectedItem?.path.split('/').filter(Boolean) || [];
+
+  // Directory selection screen when no root is selected
+  if (!rootFileSystem) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%)',
+        color: 'white',
+        padding: '20px',
+        fontFamily: 'system-ui, sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center' }}>
+          <h1 style={{
+            fontSize: '48px',
+            fontWeight: 'bold',
+            background: 'linear-gradient(90deg, #a855f7, #3b82f6, #06b6d4)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '16px'
+          }}>
+            Storage Universe
+          </h1>
+          <p style={{ color: '#888', fontSize: '16px', marginBottom: '40px' }}>
+            ローカルストレージを宇宙空間として可視化
+          </p>
+
+          {error && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              color: '#ef4444',
+              fontSize: '14px'
+            }}>
+              {error}
+            </div>
+          )}
+
+          {isLoading ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                border: '3px solid rgba(168, 85, 247, 0.3)',
+                borderTopColor: '#a855f7',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              <style>{`
+                @keyframes spin {
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
+              <p style={{ color: '#888' }}>ディレクトリを読み込み中...</p>
+            </div>
+          ) : (
+            <>
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                borderRadius: '16px',
+                padding: '24px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                marginBottom: '20px'
+              }}>
+                <h2 style={{ fontSize: '18px', marginBottom: '16px', color: '#fff' }}>
+                  ディレクトリを選択
+                </h2>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: '12px'
+                }}>
+                  {availableRoots.map((root) => (
+                    <button
+                      key={root.path}
+                      onClick={() => handleSelectRoot(root.path)}
+                      style={{
+                        padding: '16px',
+                        background: 'rgba(168, 85, 247, 0.1)',
+                        border: '1px solid rgba(168, 85, 247, 0.3)',
+                        borderRadius: '12px',
+                        color: 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        textAlign: 'center'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)';
+                        e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.5)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(168, 85, 247, 0.1)';
+                        e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.3)';
+                      }}
+                    >
+                      <div style={{ fontSize: '24px', marginBottom: '8px' }}>
+                        {root.name === 'Home' ? '🏠' :
+                         root.name === 'Documents' ? '📄' :
+                         root.name === 'Downloads' ? '⬇️' :
+                         root.name === 'Desktop' ? '🖥️' :
+                         root.name === 'Work' ? '💼' :
+                         root.name === 'Projects' ? '🚀' :
+                         root.name === 'Temp' ? '🗑️' : '📁'}
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{root.name}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                borderRadius: '16px',
+                padding: '24px',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}>
+                <h2 style={{ fontSize: '18px', marginBottom: '16px', color: '#fff' }}>
+                  カスタムパス
+                </h2>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <input
+                    type="text"
+                    value={customPath}
+                    onChange={(e) => setCustomPath(e.target.value)}
+                    placeholder="/path/to/directory"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCustomPathSubmit();
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      color: 'white',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                  />
+                  <button
+                    onClick={handleCustomPathSubmit}
+                    disabled={!customPath.trim()}
+                    style={{
+                      padding: '12px 24px',
+                      background: customPath.trim() ? 'linear-gradient(90deg, #a855f7, #3b82f6)' : 'rgba(255,255,255,0.1)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      cursor: customPath.trim() ? 'pointer' : 'not-allowed',
+                      opacity: customPath.trim() ? 1 : 0.5
+                    }}
+                  >
+                    開く
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -398,22 +627,82 @@ export default function PhysicalStorageUniverse() {
       fontFamily: 'system-ui, sans-serif'
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '20px' }}>
-          <h1 style={{
-            fontSize: '32px',
-            fontWeight: 'bold',
-            background: 'linear-gradient(90deg, #a855f7, #3b82f6, #06b6d4)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '8px'
-          }}>
-            Storage Universe
-          </h1>
-          <p style={{ color: '#888', fontSize: '14px' }}>
-            ストレージを宇宙空間として可視化 - ドラッグで回転 - スクロールでズーム - ダブルクリックで中に入る
-          </p>
+        {/* Header with directory selector */}
+        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 style={{
+              fontSize: '32px',
+              fontWeight: 'bold',
+              background: 'linear-gradient(90deg, #a855f7, #3b82f6, #06b6d4)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginBottom: '8px'
+            }}>
+              Storage Universe
+            </h1>
+            <p style={{ color: '#888', fontSize: '14px' }}>
+              ドラッグで回転 - スクロールでズーム - ダブルクリックで中に入る
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setRootFileSystem(null);
+              setCurrentRoot(null);
+              setNavigationPath([]);
+              setSelectedItem(null);
+              setError(null);
+            }}
+            style={{
+              padding: '8px 16px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              color: '#888',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+              e.currentTarget.style.color = '#fff';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+              e.currentTarget.style.color = '#888';
+            }}
+          >
+            別のフォルダを選択
+          </button>
         </div>
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: 'rgba(168, 85, 247, 0.2)',
+            border: '1px solid rgba(168, 85, 247, 0.3)',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            fontSize: '13px',
+            color: '#a855f7',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            zIndex: 1000
+          }}>
+            <div style={{
+              width: '14px',
+              height: '14px',
+              border: '2px solid rgba(168, 85, 247, 0.3)',
+              borderTopColor: '#a855f7',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+            読み込み中...
+          </div>
+        )}
 
         {/* Navigation Breadcrumb */}
         <div style={{
@@ -447,7 +736,7 @@ export default function PhysicalStorageUniverse() {
                 onMouseOver={(e) => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.1)'}
                 onMouseOut={(e) => e.currentTarget.style.background = i === navigationPath.length - 1 ? 'rgba(168, 85, 247, 0.2)' : 'transparent'}
               >
-                {name === 'root' ? '🌟 ルート' : `📁 ${name}`}
+                {i === 0 ? '🌟 ' + name : '📁 ' + name}
               </button>
             </span>
           ))}

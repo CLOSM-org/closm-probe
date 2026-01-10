@@ -145,6 +145,7 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 | Camera controls | `src/components/universe/controls/CameraController.tsx` |
 | Position calculations | `src/components/PhysicalStorageUniverse.tsx` |
 | Post-processing effects | `src/components/universe/postprocessing/Effects.tsx` |
+| File system API | `src/app/actions/filesystem.ts` |
 
 ---
 
@@ -157,6 +158,63 @@ Single source of truth for directory ↔ universe metaphor mappings in CLOSM Pro
 | Satellite | 衛星 | Child of planet (abstracted as ring) |
 | Asteroid | 小惑星 | Overflow items in belt |
 | Ring | リング | Visual indicator of children on directory planet |
+
+---
+
+## Appendix E: Data Source
+
+| Attribute | Value | Details | Implementation |
+|-----------|-------|---------|----------------|
+| Source type | Local file system | Node.js fs module via Server Actions | `src/app/actions/filesystem.ts` |
+| Directory selection | UI + Custom path | Preset roots (Home, Documents, etc.) or custom path input | `PhysicalStorageUniverse.tsx` |
+| Navigation depth | **Unlimited** | Can drill down to any depth in the file system | `handleDrillDown()` |
+| Rendering depth | 2 levels | Star (depth 0) + Planets (depth 1), satellites as rings | `flattenWithPositions()` |
+| Structure loading | Fast, async | `readDirectoryStructure()` - structure only, no size calculation | `filesystem.ts` |
+| Size calculation | Background async | `getDirectorySize()` using get-folder-size library | `filesystem.ts` |
+| Size display | Progressive | Shows "計算中..." until calculated, then actual size | `formatSize()` |
+| Cache strategy | Memory (session) | Structure cache + Size cache in refs | `PhysicalStorageUniverse.tsx` |
+| Hidden files | Excluded by default | .git, node_modules, .DS_Store, etc. skipped | `filesystem.ts:SKIP_PATTERNS` |
+
+### Size Calculation Strategy
+
+| State | Display | Description |
+|-------|---------|-------------|
+| `size === -1` | "計算中..." | Size calculation in progress |
+| `size >= 0` | Formatted (e.g., "1.5 MB") | Calculated size |
+| Error | "---" | Failed to calculate |
+
+### Data Flow
+
+```
+User selects directory
+        ↓
+readDirectoryStructure(path, depth=2)  ← Fast (structure only)
+        ↓
+Display tree immediately (sizes = "計算中...")
+        ↓
+For each directory:
+  └─ getDirectorySize(path)  ← Background async (get-folder-size)
+        ↓
+Update UI with actual sizes as they arrive
+        ↓
+Cache sizes in memory (sizeCacheRef)
+```
+
+### File Type Detection
+
+File types are detected by extension and mapped to colors (see Appendix A):
+
+| Category | Extensions |
+|----------|------------|
+| Code | .ts, .tsx, .js, .jsx, .py, .go, .rs, .java, .c, .cpp, .swift, .css, .html |
+| Design | .psd, .ai, .sketch, .fig, .xd, .svg |
+| Image | .png, .jpg, .jpeg, .gif, .webp, .ico, .bmp, .tiff |
+| Video | .mp4, .mov, .avi, .mkv, .webm |
+| PDF | .pdf |
+| Document | .doc, .docx, .ppt, .pptx, .xls, .xlsx |
+| Text | .txt, .md, .json, .yaml, .yml, .xml, .csv, .log |
+| Data | .db, .sqlite, .sql |
+| Archive | .zip, .tar, .gz, .rar, .7z |
 
 ---
 
