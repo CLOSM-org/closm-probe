@@ -7,6 +7,11 @@ license = "MIT"
 
 [dependencies]
 bevy = "0.15"
+bevy_egui = "0.31"
+bevy_panorbit_camera = "0.22"
+bevy_hanabi = "0.14"
+rfd = "0.15"
+dark-light = "1.0"
 
 [profile.dev]
 opt-level = 1

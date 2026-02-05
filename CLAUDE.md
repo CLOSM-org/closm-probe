@@ -2,194 +2,281 @@
 
 **Last Updated**: 2026-02-05
 
-Project rules and guidelines for Claude Code assistance.
-
 ---
 
 ## Project Overview
 
-**CLOSM Probe**: 3D storage visualization tool that represents file systems as explorable universe spaces.
+**CLOSM Probe**: 3D storage visualization tool using universe metaphor.
 
 | Item | Value |
 |------|-------|
-| Repository | closm-probe |
-| Design Doc | `docs/design/product-design.md` |
-
-### Tech Stack
-
-| Category | Technology |
-|----------|------------|
+| Status | **Detailed Design Complete** - Ready for testing |
 | Language | Rust (Edition 2024) |
-| Engine | Bevy 0.15 (ECS game engine) |
-| Graphics | wgpu (via Bevy) |
-| UI | egui (via bevy_egui) |
-| Particles | bevy_hanabi (GPU particles) |
+| Engine | Bevy 0.15 |
+
+### Core Metaphor
+
+| Storage | Universe |
+|---------|----------|
+| Current folder | Star (center) |
+| Child folder | Planet (sphere) |
+| Child file | Planet (octahedron) |
+| Grandchild | Ring around planet |
+
+---
+
+## Tech Stack
+
+```toml
+[dependencies]
+bevy = "0.15"                    # ECS game engine
+bevy_egui = "0.31"               # UI overlay
+bevy_panorbit_camera = "0.22"    # Orbital camera
+bevy_hanabi = "0.14"             # GPU particles
+rfd = "0.15"                     # File dialog
+dark-light = "1.0"               # OS theme detection
+```
 
 ---
 
 ## Absolute Rules
 
-### 1. Commit Policy
-- **Never commit without explicit instruction**
-- Wait for user approval before committing
+| Rule | Description |
+|------|-------------|
+| **No Auto-Commit** | Never commit without explicit instruction |
+| **No Auto-Run** | Never `cargo run` without instruction. `cargo check` is OK |
+| **English Docs** | Documentation in English, conversation in Japanese |
+| **Metaphor Sync** | Visual changes must align with `docs/requirements/metaphor.md` |
 
-### 2. Build Policy
-- **Never run `cargo build` or `cargo run` without instruction**
-- Exception: Quick syntax checks with `cargo check` are allowed
+---
 
-### 3. Documentation Policy
-- Keep docs up-to-date when requirements change
-- Remove outdated or confusing content
-- Docs should be in **English** (for token efficiency)
-- Conversations remain in **Japanese**
+## Module Structure
 
-### 4. Metaphor Mapping Policy (CRITICAL)
-- **`docs/specifications/metaphor-mapping.md` is the Single Source of Truth**
-- This file defines ALL metaphor mappings (universe ↔ storage)
-- **Bidirectional sync required**:
-  - When implementation changes → Update metaphor-mapping.md
-  - When metaphor-mapping.md changes → Update implementation
-- **Before implementing visual/spatial changes**: Check metaphor-mapping.md first
-- **TBD items**: Undefined mappings must be decided and documented before implementation
+```
+src/
+├── main.rs           # App entry, plugin registration
+├── states.rs         # AppState (Empty → Loading → Viewing)
+├── events.rs         # FolderSelectedEvent, DrillDownEvent, etc.
+├── bundles.rs        # StarBundle, DirectoryPlanetBundle, FilePlanetBundle
+├── components/
+│   ├── celestial.rs  # CelestialBody, Star, Planet, FileType
+│   ├── interaction.rs # Clickable, Drillable, Hovered, Selected
+│   └── visual.rs     # Brightness, GrandchildRing, AsteroidBelt
+├── resources/
+│   ├── navigation.rs # CurrentDirectory, Breadcrumb, NavigationHistory
+│   ├── cache.rs      # DirectoryCache (LRU, 50 entries, 30s TTL)
+│   ├── ui_state.rs   # UiState, UiLayout, PendingFolderSelection
+│   └── config.rs     # VisualConfig, ThemeConfig, CameraConfig
+├── systems/
+│   ├── setup.rs      # Camera, lighting, resources initialization
+│   ├── cleanup.rs    # State exit cleanup
+│   ├── filesystem.rs # Directory reading (sync, std::fs)
+│   ├── spawning.rs   # Celestial body spawning
+│   ├── camera.rs     # Animation, view reset
+│   ├── interaction.rs # Hover, selection, drilldown
+│   └── ui.rs         # egui rendering
+└── utils/
+    └── visual_encoding.rs # Size/color/brightness calculations
+```
+
+---
+
+## Documentation Structure
+
+```
+docs/
+├── requirements/          # Requirements definition
+│   ├── index.md           # Requirements index
+│   ├── metaphor.md        # Core metaphor mapping (CRITICAL)
+│   ├── visual.md          # Size/color/brightness values
+│   ├── ui-ux.md           # UI layout, interactions
+│   └── tech.md            # Technology decisions
+├── design/                # Detailed design
+│   ├── index.md           # Design index
+│   ├── ecs-architecture.md # Components, Resources, States
+│   ├── scene-graph.md     # Bundles, spawning, hierarchy
+│   ├── camera.md          # Orbital controls, animation
+│   └── ui.md              # egui components, theme
+└── reference/
+    └── bevy-notes.md      # Bevy 0.15 patterns, rfd gotchas
+```
 
 ---
 
 ## Development Process
 
 ```
-1. Research & understand existing code
-2. Update documentation if needed
-3. Clarify requirements (use AskUserQuestion)
-4. Implement incrementally (stop at checkpoints)
-5. Wait for manual testing
-6. Wait for commit instruction
+1. Read relevant design docs first
+2. Implement incrementally
+3. cargo check frequently
+4. Wait for user to test (cargo run)
+5. Wait for commit instruction
 ```
 
-### Branch Strategy
+### Key Design Documents
 
-| Branch | Purpose |
-|--------|---------|
-| `main` | Development |
-| `feature/*` | New features |
-| `fix/*` | Bug fixes |
-
----
-
-## Technical Guidelines
-
-### Bevy ECS Patterns
-- Use Components for data, Systems for logic
-- Prefer Bundles for related components
-- Use Events for decoupled communication
-- Use Resources for global state
-
-### Performance Considerations
-- Use `Query` filters to minimize iteration
-- Consider LOD (Level of Detail) for large file systems
-- Use `bevy_hanabi` for particle effects (GPU-accelerated)
-- Profile with `bevy_diagnostic` plugin
-
-### File System Access
-- Use `std::fs` for native file system operations
-- Handle errors gracefully with `Result`
-- Consider async for large directory scans
+| When | Read |
+|------|------|
+| Adding visual features | `docs/requirements/visual.md` |
+| Changing metaphor | `docs/requirements/metaphor.md` |
+| Modifying ECS | `docs/design/ecs-architecture.md` |
+| Camera changes | `docs/design/camera.md` |
+| UI changes | `docs/design/ui.md` |
 
 ---
 
-## Key Principles
+## Bevy 0.15 Patterns
 
-1. **Ask when uncertain** - Use dialogue for clarification
-2. **Keep docs current** - Update as you work
-3. **Incremental progress** - Stop at checkpoints
-4. **Test-driven** - Wait for manual test results
-5. **Commit on instruction** - Never auto-commit
-6. **Minimal scope** - Fix only what's necessary; avoid over-correction
+### Spawning 3D Objects
+
+```rust
+commands.spawn((
+    Mesh3d(meshes.add(Sphere::new(1.0))),
+    MeshMaterial3d(materials.add(StandardMaterial {
+        base_color: Color::srgb(1.0, 0.5, 0.2),
+        emissive: color.into(),
+        ..default()
+    })),
+    Transform::from_xyz(0.0, 0.0, 0.0),
+));
+```
+
+### State Machine
+
+```rust
+#[derive(States, Default, Clone, Eq, PartialEq, Hash, Debug)]
+pub enum AppState {
+    #[default]
+    Empty,
+    Loading,
+    Viewing,
+}
+```
+
+### rfd File Dialog (macOS)
+
+**IMPORTANT**: Don't open dialogs at startup - blocks event loop.
+
+```rust
+// Triggered by button click, not at app start
+if ui.button("Open Folder").clicked() {
+    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+        // Process folder
+    }
+}
+```
 
 ---
 
 ## Commands
 
 ```bash
-cargo check      # Quick syntax/type check
-cargo run        # Run in debug mode
-cargo run --release  # Run with optimizations
-cargo build --release  # Build release binary
-cargo clippy     # Lint with Clippy
-cargo fmt        # Format code
+cargo check          # Quick syntax check (allowed anytime)
+cargo run            # Run application (wait for instruction)
+cargo clippy         # Lint check
+cargo fmt            # Format code
 ```
 
 ---
 
-## Repository Structure
+## rust-skills Reference
+
+### When to Use
+
+| Situation | Skill |
+|-----------|-------|
+| Type-driven design | `/rust-skills:m05-type-driven` |
+| Domain modeling | `/rust-skills:m09-domain` |
+| Performance issues | `/rust-skills:m10-performance` |
+| Lifecycle/RAII | `/rust-skills:m12-lifecycle` |
+| Error handling | `/rust-skills:m13-domain-error` |
+| Anti-pattern check | `/rust-skills:m15-anti-pattern` |
+| Unsafe code review | `/rust-skills:unsafe-checker` |
+
+### Crate Skills
+
+Generate documentation skills for dependencies:
 
 ```
-closm-probe/
-├── src/
-│   └── main.rs             # Application entry point
-├── docs/                   # Documentation
-│   ├── README.md           # Documentation index
-│   ├── design/
-│   │   └── product-design.md   # Product design spec
-│   └── specifications/
-│       └── metaphor-mapping.md # Directory ↔ Universe reference
-├── Cargo.toml              # Rust package manifest
-└── CLAUDE.md               # This file
+/rust-skills:sync-crate-skills          # Sync all from Cargo.toml
+/rust-skills:docs bevy                  # Fetch specific crate docs
+/rust-skills:cache-status               # Check cache status
+```
+
+### Workflow Example
+
+```
+1. Encounter unfamiliar crate API
+2. /rust-skills:docs {crate_name}
+3. Reference generated skill for patterns
 ```
 
 ---
 
 ## Cross-Session Memory (claude-mem)
 
-This project uses **claude-mem** plugin for persistent memory across sessions.
-
-### Basic Workflow
+### Quick Reference
 
 ```
-1. Search → Get index with IDs
-2. Timeline → Understand context around results
-3. Fetch → Get full details by ID
+search(query="spawning", project="closm-probe")
+timeline(anchor=123, depth_before=5, depth_after=5)
+get_observations(ids=[123, 122, 121])
 ```
-
-### Common Commands
-
-**Search past work**:
-```
-search(query="bevy rendering", limit=20, project="closm-probe")
-```
-
-**Get timeline context**:
-```
-timeline(anchor=123, depth_before=5, depth_after=5, project="closm-probe")
-```
-
-**Fetch observations (batch)**:
-```
-get_observations(ids=[123, 122, 121], orderBy="date_desc")
-```
-
-### Search Filters
-
-| Parameter | Description |
-|-----------|-------------|
-| `query` | Search term |
-| `limit` | Max results (default: 20) |
-| `project` | Project name: `closm-probe` |
-| `type` | "observations", "sessions", or "prompts" |
-| `obs_type` | bugfix, feature, decision, discovery, change |
 
 ### Observation Types
 
-- discovery - Code exploration, file reading
-- change - File modifications
-- feature - New functionality
-- bugfix - Bug fixes
-- decision - Architectural decisions
+| Type | When |
+|------|------|
+| discovery | Code exploration |
+| change | File modifications |
+| decision | Architecture choices |
+| bugfix | Bug fixes |
+| feature | New functionality |
 
 ---
 
-## Related Documents
+## Visual Encoding Quick Reference
 
-| Document | Purpose |
-|----------|---------|
-| **`docs/specifications/metaphor-mapping.md`** | **CRITICAL: Single Source of Truth for all metaphor definitions** |
-| `docs/design/product-design.md` | Product design specification |
+### Size (log10 scale)
+
+| Entity | Range |
+|--------|-------|
+| Star | 2.5 (fixed) |
+| Directory | 0.5 - 2.0 |
+| File | 0.3 - 1.8 |
+
+### Color (FileType)
+
+| Type | Color |
+|------|-------|
+| Code | Cyan `#61dafb` |
+| Image | Orange `#f59e0b` |
+| Video | Red `#ef4444` |
+| Document | Blue `#3b82f6` |
+| Data | Teal `#06b6d4` |
+| Archive | Gray `#6b7280` |
+| Directory | White |
+
+### Brightness (modification time)
+
+| Age | Brightness |
+|-----|------------|
+| < 24h | 100% |
+| < 1 week | 85% |
+| < 1 month | 70% |
+| < 3 months | 55% |
+| < 1 year | 40% |
+| > 1 year | 25% |
+
+---
+
+## Testing Checklist
+
+1. ✅ Startup → Empty universe with "Open Folder" button
+2. ✅ Select folder → Celestials spawn
+3. ✅ Hover → Tooltip appears
+4. ✅ Click → Selection state
+5. ✅ Double-click directory → Drilldown animation
+6. ✅ Breadcrumb click → Navigate to ancestor
+7. ✅ Space key → Reset view
+8. ✅ Esc key → Clear selection
