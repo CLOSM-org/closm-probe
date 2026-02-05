@@ -1,4 +1,4 @@
-[← Visual](./visual.md) | [Index](./index.md)
+[← Size Calculation](./size-calculation.md) | [Index](./index.md)
 
 # Tech Stack
 

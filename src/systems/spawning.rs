@@ -9,6 +9,7 @@ use crate::components::*;
 use crate::events::RespawnCelestialsEvent;
 use crate::resources::*;
 use crate::systems::filesystem::{count_directory_items, read_directory};
+use crate::systems::size_calculation::{spawn_size_calculations, SizeCalculationChannel};
 use crate::utils::*;
 use bevy::prelude::*;
 
@@ -20,6 +21,7 @@ pub fn spawn_celestials(
     current_dir: Res<CurrentDirectory>,
     mut cache: ResMut<DirectoryCache>,
     config: Res<VisualConfig>,
+    size_channel: Res<SizeCalculationChannel>,
 ) {
     let Some(path) = &current_dir.path else {
         return;
@@ -61,12 +63,12 @@ pub fn spawn_celestials(
     });
 
     // Limit items to max display count
-    let display_entries: Vec<_> = entries
-        .iter()
-        .take(config.max_display_items)
-        .collect();
+    let display_entries: Vec<_> = entries.iter().take(config.max_display_items).collect();
     let overflow_count = entries.len().saturating_sub(config.max_display_items);
     let total_display = display_entries.len();
+
+    // Collect directory paths for size calculation
+    let mut pending_calculations = Vec::new();
 
     // Spawn planets for each entry
     for (index, entry) in display_entries.iter().enumerate() {
@@ -74,7 +76,7 @@ pub fn spawn_celestials(
         let brightness = calculate_brightness(entry.modified);
 
         if entry.is_directory {
-            // Directory planet (sphere)
+            // Directory planet (sphere) - starts at minimum size
             let size = calculate_size(entry.size_bytes, true, &config);
             let mesh = create_sphere_mesh(size, &mut meshes);
             let material = create_celestial_material(
@@ -84,17 +86,24 @@ pub fn spawn_celestials(
             );
 
             let planet_entity = commands
-                .spawn(DirectoryPlanetBundle::new(
-                    entry.name.clone(),
-                    entry.path.clone(),
-                    entry.size_bytes,
-                    entry.modified,
-                    brightness,
-                    position,
-                    mesh,
-                    material,
+                .spawn((
+                    DirectoryPlanetBundle::new(
+                        entry.name.clone(),
+                        entry.path.clone(),
+                        entry.size_bytes,
+                        entry.modified,
+                        brightness,
+                        position,
+                        mesh,
+                        material,
+                    ),
+                    PulseAnimation::default(),
+                    PendingSizeCalculation,
                 ))
                 .id();
+
+            // Queue for size calculation
+            pending_calculations.push(entry.path.clone());
 
             // Check for grandchildren and add ring if any
             let grandchild_count = count_directory_items(&entry.path);
@@ -105,16 +114,12 @@ pub fn spawn_celestials(
             }
         } else {
             // File planet (octahedron)
-            let file_type = FileType::from_extension(
-                entry.path.extension().and_then(|e| e.to_str()),
-            );
+            let file_type =
+                FileType::from_extension(entry.path.extension().and_then(|e| e.to_str()));
             let size = calculate_size(entry.size_bytes, false, &config);
             let mesh = create_octahedron_mesh(size, &mut meshes);
-            let material = create_celestial_material(
-                file_type,
-                brightness.value,
-                &mut materials,
-            );
+            let material =
+                create_celestial_material(file_type, brightness.value, &mut materials);
 
             commands.spawn(FilePlanetBundle::new(
                 entry.name.clone(),
@@ -130,12 +135,14 @@ pub fn spawn_celestials(
         }
     }
 
+    // Spawn background size calculations
+    if !pending_calculations.is_empty() {
+        spawn_size_calculations(pending_calculations, size_channel.sender.clone());
+    }
+
     // Spawn asteroid belt for overflow items
     if overflow_count > 0 {
-        commands.spawn((
-            AsteroidBelt { count: overflow_count },
-            Transform::default(),
-        ));
+        commands.spawn((AsteroidBelt { count: overflow_count }, Transform::default()));
         info!("Overflow: {} items in asteroid belt", overflow_count);
     }
 
@@ -169,6 +176,7 @@ pub fn handle_respawn_celestials(
     current_dir: Res<CurrentDirectory>,
     mut cache: ResMut<DirectoryCache>,
     config: Res<VisualConfig>,
+    size_channel: Res<SizeCalculationChannel>,
 ) {
     // Only process if there's an event
     if events.read().next().is_none() {
@@ -222,6 +230,9 @@ pub fn handle_respawn_celestials(
     let overflow_count = entries.len().saturating_sub(config.max_display_items);
     let total_display = display_entries.len();
 
+    // Collect directory paths for size calculation
+    let mut pending_calculations = Vec::new();
+
     // Spawn planets for each entry
     for (index, entry) in display_entries.iter().enumerate() {
         let position = calculate_orbital_position(index, total_display, ORBIT_RADIUS);
@@ -234,17 +245,24 @@ pub fn handle_respawn_celestials(
                 create_celestial_material(FileType::Directory, brightness.value, &mut materials);
 
             let planet_entity = commands
-                .spawn(DirectoryPlanetBundle::new(
-                    entry.name.clone(),
-                    entry.path.clone(),
-                    entry.size_bytes,
-                    entry.modified,
-                    brightness,
-                    position,
-                    mesh,
-                    material,
+                .spawn((
+                    DirectoryPlanetBundle::new(
+                        entry.name.clone(),
+                        entry.path.clone(),
+                        entry.size_bytes,
+                        entry.modified,
+                        brightness,
+                        position,
+                        mesh,
+                        material,
+                    ),
+                    PulseAnimation::default(),
+                    PendingSizeCalculation,
                 ))
                 .id();
+
+            // Queue for size calculation
+            pending_calculations.push(entry.path.clone());
 
             let grandchild_count = count_directory_items(&entry.path);
             if grandchild_count > 0 {
@@ -272,6 +290,11 @@ pub fn handle_respawn_celestials(
                 material,
             ));
         }
+    }
+
+    // Spawn background size calculations
+    if !pending_calculations.is_empty() {
+        spawn_size_calculations(pending_calculations, size_channel.sender.clone());
     }
 
     if overflow_count > 0 {

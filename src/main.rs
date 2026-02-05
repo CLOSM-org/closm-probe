@@ -44,6 +44,7 @@ fn main() {
         .init_resource::<PendingFolderSelection>()
         .init_resource::<FileDialogTask>()
         .init_resource::<interaction::ClickState>()
+        .init_resource::<SizeCalculationChannel>()
         // States
         .init_state::<AppState>()
         .add_sub_state::<ViewingMode>()
@@ -78,6 +79,8 @@ fn main() {
                 handle_keyboard,
                 handle_navigate_to,
                 handle_respawn_celestials,
+                update_celestial_sizes,
+                animate_pulse,
                 render_breadcrumb,
                 render_sidebar,
                 render_tooltip,

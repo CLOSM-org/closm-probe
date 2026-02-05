@@ -24,4 +24,5 @@
 | [Metaphor](./metaphor.md) | ストレージ ↔ 宇宙のマッピング定義 |
 | [UI/UX](./ui-ux.md) | 画面構成・操作・視覚フィードバック |
 | [Visual](./visual.md) | 色・サイズ・明るさのエンコーディング |
+| [Size Calculation](./size-calculation.md) | サイズ計算戦略・パフォーマンス要件 |
 | [Tech](./tech.md) | 技術スタック・制約 |

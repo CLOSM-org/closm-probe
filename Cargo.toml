@@ -13,6 +13,8 @@ bevy_hanabi = "0.14"
 rfd = "0.15"
 dark-light = "1.0"
 futures-lite = "2.6.1"
+jwalk = "0.8"
+crossbeam-channel = "0.5"
 
 [profile.dev]
 opt-level = 1

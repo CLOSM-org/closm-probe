@@ -45,13 +45,9 @@ fn read_directory_sync(path: &PathBuf) -> Vec<FileEntry> {
                 let file_entry = FileEntry {
                     name,
                     path: entry_path,
-                    size_bytes: if metadata.is_dir() {
-                        // For directories, we could calculate total size
-                        // but that's expensive. Use 0 for now.
-                        0
-                    } else {
-                        metadata.len()
-                    },
+                    // Directory size calculation is deferred (see docs/reference/size-calculation-research.md)
+                    // Will be implemented with async/parallel approach after requirements finalization
+                    size_bytes: if metadata.is_dir() { 0 } else { metadata.len() },
                     modified: metadata.modified().unwrap_or(std::time::UNIX_EPOCH),
                     is_directory: metadata.is_dir(),
                 };

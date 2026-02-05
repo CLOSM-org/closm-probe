@@ -1,4 +1,4 @@
-[← UI/UX](./ui-ux.md) | [Index](./index.md) | [Tech →](./tech.md)
+[← UI/UX](./ui-ux.md) | [Index](./index.md) | [Size Calculation →](./size-calculation.md)
 
 # Visual Encoding
 

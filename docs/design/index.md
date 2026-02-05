@@ -12,6 +12,7 @@ Rust/Bevy implementation design documents.
 | [Scene Graph](./scene-graph.md) | Bundles, spawning, hierarchy |
 | [Camera](./camera.md) | Orbital controls, animation |
 | [UI](./ui.md) | egui panels, tooltips, theme |
+| [Size Calculation](./size-calculation.md) | Platform-specific size calculation |
 
 ---
 
@@ -39,7 +40,11 @@ src/
 │   ├── spawning.rs
 │   ├── camera.rs
 │   ├── interaction.rs
-│   └── ui.rs
+│   ├── ui.rs
+│   └── size_calculation/  # Platform-specific
+│       ├── mod.rs
+│       ├── spotlight.rs   # macOS
+│       └── jwalk.rs       # Fallback
 └── utils/
     └── visual_encoding.rs
 ```
@@ -54,6 +59,7 @@ src/
 | Phase 2: Scene Graph | ✅ Complete |
 | Phase 3: Camera | ✅ Complete |
 | Phase 4: UI | ✅ Complete |
+| Phase 5: Size Calculation | 🚧 In Progress |
 
 ---
 
