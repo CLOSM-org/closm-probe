@@ -54,8 +54,9 @@ fn main() {
         .add_event::<SelectionChangedEvent>()
         .add_event::<NavigateToEvent>()
         .add_event::<ViewResetEvent>()
+        .add_event::<RespawnCelestialsEvent>()
         // Startup systems
-        .add_systems(Startup, setup_theme)
+        .add_systems(Startup, (setup_theme, setup_fonts))
         // State: Empty
         .add_systems(OnEnter(AppState::Empty), setup_camera)
         .add_systems(
@@ -74,6 +75,7 @@ fn main() {
                 handle_drilldown,
                 handle_keyboard,
                 handle_navigate_to,
+                handle_respawn_celestials,
                 render_breadcrumb,
                 render_sidebar,
                 render_tooltip,

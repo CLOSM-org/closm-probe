@@ -61,18 +61,39 @@ impl Breadcrumb {
     }
 }
 
-/// Navigation history for back/forward
-#[derive(Resource, Debug, Default)]
+/// Navigation history for recent folders and back/forward navigation
+#[derive(Resource, Debug)]
 pub struct NavigationHistory {
+    /// Recent folders (for sidebar display), newest first
+    pub entries: Vec<PathBuf>,
+    /// Maximum entries to keep
+    pub max_entries: usize,
     /// Paths for "back" navigation
     pub back: Vec<PathBuf>,
     /// Paths for "forward" navigation
     pub forward: Vec<PathBuf>,
 }
 
+impl Default for NavigationHistory {
+    fn default() -> Self {
+        Self {
+            entries: Vec::new(),
+            max_entries: 10,
+            back: Vec::new(),
+            forward: Vec::new(),
+        }
+    }
+}
+
 impl NavigationHistory {
-    /// Push current path to back history and clear forward
+    /// Push path to recent entries and back history
     pub fn push(&mut self, path: PathBuf) {
+        // Add to recent entries (remove duplicates, newest first)
+        self.entries.retain(|p| p != &path);
+        self.entries.insert(0, path.clone());
+        self.entries.truncate(self.max_entries);
+
+        // Add to back history
         self.back.push(path);
         self.forward.clear();
     }

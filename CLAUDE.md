@@ -4,13 +4,44 @@
 
 ---
 
+## Development Methodology: Agile
+
+このプロジェクトはアジャイル方式で開発を進めます。
+
+### Iteration Cycle
+
+```mermaid
+flowchart LR
+    A["Issue Discovery"] --> B["Update Requirements"]
+    B --> C["Update Design"]
+    C --> D["Implementation & Test"]
+    D --> A
+```
+
+| Step | Actions |
+|------|---------|
+| 1. Issue Discovery | 動作確認、問題点特定 |
+| 2. Update Requirements | `docs/requirements/` 更新、`/doc-standards` 適用 |
+| 3. Update Design | `docs/design/` 更新、`/doc-standards` 適用、影響範囲特定 |
+| 4. Implementation & Test | コード変更、`cargo check`、ユーザーが `cargo run` |
+
+### Key Skills for Agile
+
+| Skill | Purpose |
+|-------|---------|
+| `/doc-standards` | Documentation quality, structure, token efficiency |
+| `/kawamoto-project` | Cross-project development rules and best practices |
+| `/rust-skills:*` | Rust-specific patterns and crate documentation |
+
+---
+
 ## Project Overview
 
 **CLOSM Probe**: 3D storage visualization tool using universe metaphor.
 
 | Item | Value |
 |------|-------|
-| Status | **Detailed Design Complete** - Ready for testing |
+| Status | **Iteration 1** - Core functionality refinement |
 | Language | Rust (Edition 2024) |
 | Engine | Bevy 0.15 |
 
@@ -47,6 +78,7 @@ dark-light = "1.0"               # OS theme detection
 | **No Auto-Run** | Never `cargo run` without instruction. `cargo check` is OK |
 | **English Docs** | Documentation in English, conversation in Japanese |
 | **Metaphor Sync** | Visual changes must align with `docs/requirements/metaphor.md` |
+| **Doc Standards** | ALL documentation (`docs/requirements/`, `docs/design/`) MUST follow `/doc-standards` principles |
 
 ---
 
@@ -55,29 +87,16 @@ dark-light = "1.0"               # OS theme detection
 ```
 src/
 ├── main.rs           # App entry, plugin registration
-├── states.rs         # AppState (Empty → Loading → Viewing)
-├── events.rs         # FolderSelectedEvent, DrillDownEvent, etc.
-├── bundles.rs        # StarBundle, DirectoryPlanetBundle, FilePlanetBundle
-├── components/
-│   ├── celestial.rs  # CelestialBody, Star, Planet, FileType
-│   ├── interaction.rs # Clickable, Drillable, Hovered, Selected
-│   └── visual.rs     # Brightness, GrandchildRing, AsteroidBelt
-├── resources/
-│   ├── navigation.rs # CurrentDirectory, Breadcrumb, NavigationHistory
-│   ├── cache.rs      # DirectoryCache (LRU, 50 entries, 30s TTL)
-│   ├── ui_state.rs   # UiState, UiLayout, PendingFolderSelection
-│   └── config.rs     # VisualConfig, ThemeConfig, CameraConfig
-├── systems/
-│   ├── setup.rs      # Camera, lighting, resources initialization
-│   ├── cleanup.rs    # State exit cleanup
-│   ├── filesystem.rs # Directory reading (sync, std::fs)
-│   ├── spawning.rs   # Celestial body spawning
-│   ├── camera.rs     # Animation, view reset
-│   ├── interaction.rs # Hover, selection, drilldown
-│   └── ui.rs         # egui rendering
-└── utils/
-    └── visual_encoding.rs # Size/color/brightness calculations
+├── states.rs         # Application state machine
+├── events.rs         # Application events
+├── bundles.rs        # Entity bundles
+├── components/       # ECS components
+├── resources/        # ECS resources
+├── systems/          # ECS systems
+└── utils/            # Utility functions
 ```
+
+**Details**: See `docs/design/ecs-architecture.md` for component/resource/system specifications.
 
 ---
 
@@ -85,21 +104,12 @@ src/
 
 ```
 docs/
-├── requirements/          # Requirements definition
-│   ├── index.md           # Requirements index
-│   ├── metaphor.md        # Core metaphor mapping (CRITICAL)
-│   ├── visual.md          # Size/color/brightness values
-│   ├── ui-ux.md           # UI layout, interactions
-│   └── tech.md            # Technology decisions
-├── design/                # Detailed design
-│   ├── index.md           # Design index
-│   ├── ecs-architecture.md # Components, Resources, States
-│   ├── scene-graph.md     # Bundles, spawning, hierarchy
-│   ├── camera.md          # Orbital controls, animation
-│   └── ui.md              # egui components, theme
-└── reference/
-    └── bevy-notes.md      # Bevy 0.15 patterns, rfd gotchas
+├── requirements/          # Product requirements
+├── design/                # Technical design
+└── reference/             # Implementation references
 ```
+
+**Navigation**: Start from `docs/requirements/index.md` or `docs/design/index.md`.
 
 ---
 
@@ -113,6 +123,14 @@ docs/
 5. Wait for commit instruction
 ```
 
+### Documentation Updates
+
+**CRITICAL**: When updating `docs/requirements/` or `docs/design/`:
+
+1. **Always apply `/doc-standards`** - Token efficiency, clear structure, no ambiguity
+2. **Follow agile iteration cycle** - Update requirements → Update design → Implement
+3. **Maintain consistency** - All docs must reflect current implementation
+
 ### Key Design Documents
 
 | When | Read |
@@ -125,18 +143,14 @@ docs/
 
 ---
 
-## Bevy 0.15 Patterns
+## Bevy 0.15 Quick Reference
 
-### Spawning 3D Objects
+### Entity Spawning
 
 ```rust
 commands.spawn((
     Mesh3d(meshes.add(Sphere::new(1.0))),
-    MeshMaterial3d(materials.add(StandardMaterial {
-        base_color: Color::srgb(1.0, 0.5, 0.2),
-        emissive: color.into(),
-        ..default()
-    })),
+    MeshMaterial3d(materials.add(StandardMaterial { /* ... */ })),
     Transform::from_xyz(0.0, 0.0, 0.0),
 ));
 ```
@@ -145,26 +159,14 @@ commands.spawn((
 
 ```rust
 #[derive(States, Default, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum AppState {
-    #[default]
-    Empty,
-    Loading,
-    Viewing,
-}
+pub enum AppState { #[default] Empty, Loading, Viewing }
 ```
 
-### rfd File Dialog (macOS)
+### Critical: rfd File Dialog
 
-**IMPORTANT**: Don't open dialogs at startup - blocks event loop.
+**NEVER open at startup** - blocks event loop. Use button click trigger only.
 
-```rust
-// Triggered by button click, not at app start
-if ui.button("Open Folder").clicked() {
-    if let Some(path) = rfd::FileDialog::new().pick_folder() {
-        // Process folder
-    }
-}
-```
+**More patterns**: See `docs/reference/bevy-notes.md`.
 
 ---
 
@@ -181,102 +183,59 @@ cargo fmt            # Format code
 
 ## rust-skills Reference
 
-### When to Use
-
-| Situation | Skill |
-|-----------|-------|
+| Use Case | Skill |
+|----------|-------|
 | Type-driven design | `/rust-skills:m05-type-driven` |
 | Domain modeling | `/rust-skills:m09-domain` |
-| Performance issues | `/rust-skills:m10-performance` |
+| Performance | `/rust-skills:m10-performance` |
 | Lifecycle/RAII | `/rust-skills:m12-lifecycle` |
 | Error handling | `/rust-skills:m13-domain-error` |
-| Anti-pattern check | `/rust-skills:m15-anti-pattern` |
-| Unsafe code review | `/rust-skills:unsafe-checker` |
-
-### Crate Skills
-
-Generate documentation skills for dependencies:
-
-```
-/rust-skills:sync-crate-skills          # Sync all from Cargo.toml
-/rust-skills:docs bevy                  # Fetch specific crate docs
-/rust-skills:cache-status               # Check cache status
-```
-
-### Workflow Example
-
-```
-1. Encounter unfamiliar crate API
-2. /rust-skills:docs {crate_name}
-3. Reference generated skill for patterns
-```
+| Anti-patterns | `/rust-skills:m15-anti-pattern` |
+| Unsafe code | `/rust-skills:unsafe-checker` |
+| Crate docs | `/rust-skills:docs {crate_name}` |
 
 ---
 
 ## Cross-Session Memory (claude-mem)
 
-### Quick Reference
+**MCP Tools**: `search()`, `timeline()`, `get_observations()` available for past decisions/implementations.
 
-```
-search(query="spawning", project="closm-probe")
-timeline(anchor=123, depth_before=5, depth_after=5)
-get_observations(ids=[123, 122, 121])
-```
-
-### Observation Types
-
-| Type | When |
-|------|------|
-| discovery | Code exploration |
-| change | File modifications |
-| decision | Architecture choices |
-| bugfix | Bug fixes |
-| feature | New functionality |
+**Types**: discovery, change, decision, bugfix, feature
 
 ---
 
 ## Visual Encoding Quick Reference
 
-### Size (log10 scale)
+| Property | Rule |
+|----------|------|
+| **Size** | Star: 2.5, Directory: 0.5-2.0, File: 0.3-1.8 (log10 scale) |
+| **Color** | Code→Cyan, Image→Orange, Video→Red, Doc→Blue, Data→Teal, Archive→Gray |
+| **Brightness** | 100% (<24h) → 25% (>1yr) based on modification time |
 
-| Entity | Range |
-|--------|-------|
-| Star | 2.5 (fixed) |
-| Directory | 0.5 - 2.0 |
-| File | 0.3 - 1.8 |
-
-### Color (FileType)
-
-| Type | Color |
-|------|-------|
-| Code | Cyan `#61dafb` |
-| Image | Orange `#f59e0b` |
-| Video | Red `#ef4444` |
-| Document | Blue `#3b82f6` |
-| Data | Teal `#06b6d4` |
-| Archive | Gray `#6b7280` |
-| Directory | White |
-
-### Brightness (modification time)
-
-| Age | Brightness |
-|-----|------------|
-| < 24h | 100% |
-| < 1 week | 85% |
-| < 1 month | 70% |
-| < 3 months | 55% |
-| < 1 year | 40% |
-| > 1 year | 25% |
+**Full specification**: See `docs/requirements/visual.md`.
 
 ---
 
-## Testing Checklist
+## Current Iteration: Issues
 
-1. ✅ Startup → Empty universe with "Open Folder" button
-2. ✅ Select folder → Celestials spawn
-3. ✅ Hover → Tooltip appears
-4. ✅ Click → Selection state
-5. ✅ Double-click directory → Drilldown animation
-6. ✅ Breadcrumb click → Navigate to ancestor
-7. ✅ Space key → Reset view
-8. ✅ Esc key → Clear selection
+**Iteration 1 Issues** (2026-02-05):
+
+| # | Issue | Priority |
+|---|-------|----------|
+| 1 | Path navigation breaks 3D display (never re-renders after drilldown) | P0 |
+| 2 | Sidebar should be on left side (like Claude/ChatGPT) | P1 |
+| 3 | Sidebar UI needs modern chat-style redesign | P1 |
+| 4 | No view/directory selection feature in UI | P1 |
+
+### Testing Checklist
+
+| Test | Status |
+|------|--------|
+| Startup → Empty universe + "Open Folder" | ✅ |
+| Select folder → Celestials spawn | ✅ |
+| Hover → Tooltip | ✅ |
+| Click → Selection | ⚠️ Needs verification |
+| Double-click → Drilldown | ❌ Broken (Issue #1) |
+| Breadcrumb → Navigate | ❌ Broken (Issue #1) |
+| Space → Reset view | ⚠️ Needs verification |
+| Esc → Clear selection | ⚠️ Needs verification |

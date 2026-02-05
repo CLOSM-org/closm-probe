@@ -93,18 +93,48 @@ Synchronous file dialogs (`rfd::FileDialog::new().pick_folder()`) **block the wi
 2. **Use async dialogs** - `rfd::AsyncFileDialog` with futures
 3. **Use bevy_file_dialog plugin** - Handles async operations automatically
 
-### Working Pattern
+### Working Pattern: Async Dialog with IoTaskPool
 
 ```rust
-// Open dialog on key press, not at startup
-fn handle_folder_select(keyboard: Res<ButtonInput<KeyCode>>) {
-    if keyboard.just_pressed(KeyCode::KeyO) {
-        if let Some(path) = rfd::FileDialog::new().pick_folder() {
-            // Process folder
+use bevy::tasks::IoTaskPool;
+use futures_lite::future;
+
+// Resource to hold async task
+#[derive(Resource, Default)]
+pub struct FileDialogTask {
+    pub task: Option<Task<Option<PathBuf>>>,
+}
+
+// Spawn async dialog on button click
+fn open_folder_dialog(mut dialog_task: ResMut<FileDialogTask>) {
+    let task = IoTaskPool::get().spawn(async move {
+        let handle = rfd::AsyncFileDialog::new().pick_folder().await;
+        handle.map(|h| h.path().to_path_buf())
+    });
+    dialog_task.task = Some(task);
+}
+
+// Poll task each frame
+fn poll_file_dialog(
+    mut dialog_task: ResMut<FileDialogTask>,
+    mut pending: ResMut<PendingFolderSelection>,
+) {
+    if let Some(ref mut task) = dialog_task.task {
+        if let Some(result) = future::block_on(future::poll_once(task)) {
+            if let Some(path) = result {
+                pending.path = Some(path);
+            }
+            dialog_task.task = None;
         }
     }
 }
 ```
+
+**Key points:**
+- Use `rfd::AsyncFileDialog` (not `FileDialog`)
+- Spawn on `IoTaskPool` for background execution
+- Poll with `future::poll_once` (non-blocking)
+- Store result in separate resource for state transition
 
 ### References
 

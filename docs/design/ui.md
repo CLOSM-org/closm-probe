@@ -1,6 +1,6 @@
 # UI Design
 
-egui overlay UI system.
+egui overlay UI system with left sidebar (Claude/ChatGPT style).
 
 ---
 
@@ -14,88 +14,119 @@ Bevy 3D Render → egui Overlay → Final Frame
 
 UI is rendered as a transparent overlay on top of the 3D scene.
 
+### Layout
+
+```
+┌──────────┬────────────────────────────────────┐
+│          │ [/ > Documents > Projects]         │
+│  Sidebar │           (breadcrumb overlay)     │
+│  (left)  │                                    │
+│          │           3D Universe              │
+│  260px   │                                    │
+│  fixed   │         tooltip [file.txt]         │
+│          │                                    │
+└──────────┴────────────────────────────────────┘
+```
+
 ---
 
-## UI Components
+## Sidebar (Left Panel)
 
-### Startup Screen (AppState::Empty)
-
-| Element | Description |
-|---------|-------------|
-| Title | "CLOSM Probe" centered |
-| Subtitle | "3D Storage Visualization" |
-| Button | "📂 Open Folder" |
+### Structure
 
 ```
-┌────────────────────────────────┐
-│                                │
-│         CLOSM Probe            │
-│    3D Storage Visualization    │
-│                                │
-│       [📂 Open Folder]         │
-│                                │
-└────────────────────────────────┘
+┌─────────────────────┐
+│ CLOSM Probe         │  ← Header: App title
+│                     │
+│ [📂 Open Folder]    │  ← Primary action button
+│                     │
+├─────────────────────┤
+│ Recent              │  ← History section
+│ ├─ Documents        │     (NavigationHistory)
+│ ├─ Downloads        │
+│ └─ Projects         │
+├─────────────────────┤
+│                     │  ← Selection section
+│ Selected: file.txt  │     (when entity selected)
+│ Size: 1.2 KB        │
+│ Modified: 2h ago    │
+│ Path: /Users/...    │
+│                     │
+├─────────────────────┤
+│ ⚙️ Settings         │  ← Footer: Settings
+└─────────────────────┘
 ```
 
-### Breadcrumb Navigation
+### Properties
 
 | Property | Value |
 |----------|-------|
-| Position | Top-left (16px padding) |
-| Background | Semi-transparent (30, 30, 45, 200) |
-| Separator | " > " |
+| Position | Left edge (SidePanel::left) |
+| Width | 260px (fixed) |
+| Always visible | Yes (no toggle needed) |
+| Background | Dark: `#1a1a2e` / Light: `#f5f5f5` |
+
+### Sections
+
+| Section | Content | Visibility |
+|---------|---------|------------|
+| Header | App title, Open Folder button | Always |
+| History | Recent folders (max 10, clickable) | Always |
+| Selection | Selected celestial details | When selected |
+| Settings | Theme toggle, other options | Always |
+
+---
+
+## Breadcrumb Navigation
+
+| Property | Value |
+|----------|-------|
+| Position | Top of 3D area (inside, not sidebar) |
+| Background | Semi-transparent `rgba(30, 30, 45, 200)` |
+| Separator | ` > ` |
 | Clickable | All segments except current |
 
 ```
 [/ > Documents > Projects > Current]
 ```
 
-### Sidebar
+---
 
-| Property | Value |
-|----------|-------|
-| Position | Right edge |
-| Width | 280px |
-| Toggle | "≡" hamburger button |
-| Sections | Details, Settings |
-
-```
-┌──────────────────────────────────┬──────┐
-│                                  │  ≡   │
-│                                  ├──────┤
-│                                  │ Side │
-│          3D Scene                │ bar  │
-│                                  │      │
-└──────────────────────────────────┴──────┘
-```
-
-### Tooltip
+## Tooltip
 
 | Property | Value |
 |----------|-------|
 | Trigger | Hover over celestial |
 | Position | Near hovered entity (3D → 2D projection) |
 | Content | Name, size, relative time |
-| Background | Dark (20, 20, 30, 230) |
+| Background | Dark `rgba(20, 20, 30, 230)` |
 
 ---
 
-## File Dialog
+## File Dialog (Async)
 
 ### rfd Integration
 
-- Synchronous dialog (`FileDialog::new().pick_folder()`)
-- Triggered by button click (not startup)
-- Returns `Option<PathBuf>`
+Uses `rfd::AsyncFileDialog` with `IoTaskPool` for non-blocking operation.
+
+```rust
+// Spawn async task
+let task = IoTaskPool::get().spawn(async move {
+    let handle = rfd::AsyncFileDialog::new().pick_folder().await;
+    handle.map(|h| h.path().to_path_buf())
+});
+dialog_task.task = Some(task);
+```
 
 ### Flow
 
 ```
 Click "Open Folder"
-    → rfd::FileDialog::pick_folder()
-    → Set PendingFolderSelection resource
-    → check_folder_selection system detects
-    → Update CurrentDirectory
+    → Spawn async rfd::AsyncFileDialog
+    → poll_file_dialog system polls each frame
+    → On completion: Set PendingFolderSelection
+    → check_folder_selection detects
+    → Update CurrentDirectory, NavigationHistory
     → Transition to AppState::Viewing
 ```
 
@@ -121,19 +152,19 @@ let dark_mode = match dark_light::detect() {
 
 | Element | Color |
 |---------|-------|
-| Background | rgb(15, 15, 25) |
-| Text | rgb(240, 240, 250) |
-| Text secondary | rgb(160, 160, 180) |
-| Accent | rgb(100, 180, 255) |
-| Panel background | rgba(30, 30, 45, 230) |
+| Sidebar background | `#1a1a2e` |
+| Panel background | `rgba(30, 30, 45, 230)` |
+| Text primary | `rgb(240, 240, 250)` |
+| Text secondary | `rgb(160, 160, 180)` |
+| Accent | `rgb(100, 180, 255)` |
 
 #### Light Cosmic
 
 | Element | Color |
 |---------|-------|
-| Background | rgb(240, 245, 255) |
-| Text | rgb(20, 25, 40) |
-| Accent | rgb(50, 120, 200) |
+| Sidebar background | `#f5f5f5` |
+| Text primary | `rgb(20, 25, 40)` |
+| Accent | `rgb(50, 120, 200)` |
 
 ---
 
@@ -159,10 +190,10 @@ egui::Area::new(id)
 
 | System | Schedule | Purpose |
 |--------|----------|---------|
-| `render_startup_ui` | Update in Empty | Show open folder screen |
+| `render_sidebar` | Update (always) | Left panel with history/selection |
+| `poll_file_dialog` | Update in Empty | Poll async dialog |
 | `check_folder_selection` | Update in Empty | Detect pending selection |
 | `render_breadcrumb` | Update in Viewing | Navigation overlay |
-| `render_sidebar` | Update in Viewing | Details panel |
 | `render_tooltip` | Update in Viewing | Hover information |
 
 ---
@@ -171,10 +202,36 @@ egui::Area::new(id)
 
 | Resource | Purpose |
 |----------|---------|
-| `UiState` | Track hover, selection, sidebar state |
+| `UiState` | Track hover, selection state |
 | `UiLayout` | Dimensions (sidebar width, padding) |
 | `PendingFolderSelection` | Async dialog result |
+| `FileDialogTask` | Running async dialog task |
+| `NavigationHistory` | Recent folders list |
 | `ThemeConfig` | Colors and dark/light mode |
+
+---
+
+## New Resource: NavigationHistory Extension
+
+```rust
+// Add to resources/navigation.rs
+#[derive(Resource, Default)]
+pub struct NavigationHistory {
+    pub entries: Vec<PathBuf>,  // Recent folders, newest first
+    pub max_entries: usize,     // Default: 10
+}
+
+impl NavigationHistory {
+    pub fn push(&mut self, path: PathBuf) {
+        // Remove if already exists (move to top)
+        self.entries.retain(|p| p != &path);
+        // Insert at front
+        self.entries.insert(0, path);
+        // Trim to max
+        self.entries.truncate(self.max_entries);
+    }
+}
+```
 
 ---
 
@@ -184,6 +241,7 @@ egui::Area::new(id)
 |-----|--------|
 | Esc | Clear selection |
 | Space | Reset view |
+| Backspace | Navigate to parent |
 
 ---
 

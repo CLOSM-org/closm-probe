@@ -3,7 +3,9 @@
 //! Handle user input: hover, selection, drilldown.
 
 use crate::components::*;
-use crate::events::*;
+use crate::events::{
+    DrillDownEvent, NavigateToEvent, RespawnCelestialsEvent, SelectionChangedEvent, ViewResetEvent,
+};
 use crate::resources::*;
 use crate::states::*;
 use crate::systems::camera::CameraAnimation;
@@ -231,6 +233,7 @@ pub fn handle_navigate_to(
     mut history: ResMut<NavigationHistory>,
     celestials: Query<Entity, With<CelestialBody>>,
     asteroid_belts: Query<Entity, With<AsteroidBelt>>,
+    mut respawn_events: EventWriter<RespawnCelestialsEvent>,
 ) {
     for event in events.read() {
         // Push current directory to history
@@ -249,6 +252,9 @@ pub fn handle_navigate_to(
         for entity in asteroid_belts.iter() {
             commands.entity(entity).despawn_recursive();
         }
+
+        // Trigger respawn
+        respawn_events.send(RespawnCelestialsEvent);
 
         info!("Navigated to: {}", event.path.display());
     }

@@ -18,3 +18,6 @@ Thumbs.db
 # claude-mem context files (keep root CLAUDE.md only)
 **/CLAUDE.md
 !/CLAUDE.md
+
+# fonts files
+assets/fonts/

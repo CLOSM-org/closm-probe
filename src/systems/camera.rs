@@ -2,7 +2,7 @@
 //!
 //! Camera animation and controls.
 
-use crate::events::*;
+use crate::events::{RespawnCelestialsEvent, ViewResetEvent};
 use crate::resources::*;
 use crate::states::*;
 use bevy::prelude::*;
@@ -62,6 +62,7 @@ pub fn animate_camera(
     time: Res<Time>,
     mut query: Query<(Entity, &mut CameraAnimation, &mut PanOrbitCamera)>,
     mut next_state: ResMut<NextState<ViewingMode>>,
+    mut respawn_events: EventWriter<RespawnCelestialsEvent>,
 ) {
     for (entity, mut animation, mut camera) in query.iter_mut() {
         animation.progress += time.delta_secs() / animation.duration;
@@ -69,9 +70,12 @@ pub fn animate_camera(
         if animation.progress >= 1.0 {
             // Animation complete
             camera.radius = Some(animation.target_radius);
-            camera.focus = animation.target;
+            camera.focus = Vec3::ZERO; // Reset focus to origin for new scene
             commands.entity(entity).remove::<CameraAnimation>();
             next_state.set(ViewingMode::Idle);
+
+            // Trigger celestial respawn
+            respawn_events.send(RespawnCelestialsEvent);
         } else {
             // Interpolate
             let t = ease_out_cubic(animation.progress);

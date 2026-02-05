@@ -67,9 +67,9 @@ Idle ↔ Animating
 
 | Resource | Description | Fields |
 |----------|-------------|--------|
-| `CurrentDirectory` | Active directory path | `path: PathBuf` |
-| `Breadcrumb` | Navigation path segments | `segments: Vec<PathBuf>` |
-| `NavigationHistory` | Back/forward history | `back: Vec<PathBuf>`, `forward: Vec<PathBuf>` |
+| `CurrentDirectory` | Active directory path | `path: Option<PathBuf>` |
+| `Breadcrumb` | Navigation path segments | `segments: Vec<PathSegment>` |
+| `NavigationHistory` | Recent folders + back/forward | `entries: Vec<PathBuf>`, `back: Vec<PathBuf>`, `forward: Vec<PathBuf>`, `max_entries: usize` (10) |
 
 ### Cache
 
@@ -82,8 +82,10 @@ Idle ↔ Animating
 
 | Resource | Description | Fields |
 |----------|-------------|--------|
-| `UiState` | UI interaction state | `hovered_entity: Option<Entity>`, `selected_entity: Option<Entity>`, `sidebar_open: bool` |
-| `UiLayout` | Computed layout dimensions | `sidebar_width: f32` (280.0) |
+| `UiState` | UI interaction state | `hovered_entity: Option<Entity>`, `selected_entity: Option<Entity>` |
+| `UiLayout` | Layout dimensions | `sidebar_width: f32` (260.0), `padding: f32` (16.0) |
+| `PendingFolderSelection` | Async dialog result | `path: Option<PathBuf>` |
+| `FileDialogTask` | Running async dialog | `task: Option<Task<Option<PathBuf>>>` |
 
 ### Configuration
 
@@ -103,7 +105,9 @@ Idle ↔ Animating
 | `DrillDownEvent` | Navigate into directory | `entity: Entity`, `path: PathBuf` |
 | `DrillUpEvent` | Navigate to parent | (none) |
 | `SelectionChangedEvent` | Selection changed | `entity: Option<Entity>` |
-| `NavigateToEvent` | Breadcrumb navigation | `path: PathBuf` |
+| `NavigateToEvent` | Breadcrumb/history navigation | `path: PathBuf` |
+| `ViewResetEvent` | Reset camera to default | (none) |
+| `RespawnCelestialsEvent` | Trigger celestial respawn | (none) |
 
 ---
 
@@ -132,13 +136,20 @@ Idle ↔ Animating
 
 | System | Schedule | Purpose |
 |--------|----------|---------|
-| `handle_folder_dialog` | `Update` in `Empty` | Process folder selection |
+| `render_startup_ui` | `Update` in `Empty` | Left sidebar with Open Folder |
+| `poll_file_dialog` | `Update` in `Empty` | Poll async dialog task |
+| `check_folder_selection` | `Update` in `Empty` | Detect pending selection, transition state |
 | `update_hover` | `Update` in `Viewing` | Detect hovered entity |
 | `handle_selection` | `Update` in `Viewing` | Process clicks |
-| `handle_drilldown` | `Update` in `Viewing` | Process double-clicks |
+| `handle_drilldown` | `Update` in `Viewing` | Process double-clicks, start animation |
 | `handle_keyboard` | `Update` in `Viewing` | Esc, Space keys |
-| `render_ui` | `Update` | egui rendering |
-| `animate_camera` | `Update` in `Animating` | Camera transitions |
+| `handle_navigate_to` | `Update` in `Viewing` | Process breadcrumb/history navigation |
+| `handle_respawn_celestials` | `Update` in `Viewing` | Spawn celestials on event |
+| `render_breadcrumb` | `Update` in `Viewing` | Breadcrumb overlay |
+| `render_sidebar` | `Update` in `Viewing` | Left sidebar with history/selection |
+| `render_tooltip` | `Update` in `Viewing` | Hover tooltip |
+| `animate_camera` | `Update` in `Animating` | Camera transitions, sends respawn event |
+| `handle_view_reset` | `Update` in `Idle` | Process view reset request |
 
 ---
 

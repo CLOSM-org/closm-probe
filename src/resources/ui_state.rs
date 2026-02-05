@@ -35,7 +35,7 @@ pub struct UiLayout {
 impl Default for UiLayout {
     fn default() -> Self {
         Self {
-            sidebar_width: 280.0,
+            sidebar_width: 260.0, // Claude/ChatGPT style
             breadcrumb_height: 40.0,
             padding: 16.0,
         }

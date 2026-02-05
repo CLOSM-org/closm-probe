@@ -9,67 +9,129 @@
 ## Layout
 
 ```
-┌────────────────────────────────────┬──────┐
-│ [/ > Documents > Projects]         │  ≡  │
-│           (overlay)                ├──────┤
-│                                    │      │
-│           3D Universe              │ Side │
-│                                    │ bar  │
-│         tooltip [file.txt]         │      │
-│                                    │      │
-└────────────────────────────────────┴──────┘
+┌──────────┬────────────────────────────────────┐
+│          │ [/ > Documents > Projects]         │
+│  Side    │           (breadcrumb overlay)     │
+│  bar     │                                    │
+│          │           3D Universe              │
+│  [Chat   │                                    │
+│   style] │         tooltip [file.txt]         │
+│          │                                    │
+│  ──────  │                                    │
+│  Settings│                                    │
+└──────────┴────────────────────────────────────┘
 ```
 
-| 要素 | 仕様 |
-|------|------|
-| 3Dビュー | メイン領域。宇宙空間を表示 |
-| サイドバー | 右側、トグル式。機能・設定を配置 |
-| パンくず | 3Dビュー内オーバーレイ（半透明） |
-| ツールチップ | 選択天体の詳細情報を表示 |
+| Element | Specification |
+|---------|---------------|
+| Sidebar | **Left side**, always visible, Claude/ChatGPT style |
+| 3D View | Main area. Displays universe space |
+| Breadcrumb | Overlay inside 3D view (semi-transparent) |
+| Tooltip | Shows hovered celestial details |
+
+---
+
+## Sidebar Design (Claude/ChatGPT Style)
+
+```
+┌─────────────────────┐
+│ CLOSM Probe         │  ← App title
+│                     │
+│ ┌─────────────────┐ │
+│ │ 📂 Open Folder  │ │  ← Primary action button
+│ └─────────────────┘ │
+│                     │
+│ Recent              │  ← Section label
+│ ├─ Documents        │  ← Recent folder history
+│ ├─ Downloads        │
+│ └─ Projects         │
+│                     │
+│ ─────────────────── │  ← Divider
+│                     │
+│ Selected: file.txt  │  ← Selection info (when selected)
+│ Size: 1.2 KB        │
+│ Modified: 2h ago    │
+│                     │
+│ ─────────────────── │
+│                     │
+│ ⚙️ Settings         │  ← Settings at bottom
+└─────────────────────┘
+```
+
+### Sidebar Sections
+
+| Section | Content |
+|---------|---------|
+| Header | App title + Open Folder button |
+| History | Recent folders (max 10, clickable) |
+| Selection | Details of selected celestial body |
+| Footer | Settings toggle |
+
+### Sidebar Dimensions
+
+| Property | Value |
+|----------|-------|
+| Width | 260px (fixed) |
+| Background | Dark theme: `#1a1a2e` / Light: `#f5f5f5` |
+| Padding | 16px |
 
 ---
 
 ## Startup
 
-- 空の宇宙を表示
-- 「フォルダを開く」ボタンを中央に配置
-- フォルダ選択後、宇宙が生成される
+- Show empty universe with faint starfield
+- Sidebar visible with "Open Folder" button
+- No modal dialog - integrated in sidebar
 
 ---
 
 ## Visual Feedback
 
-| 状態 | 表現 |
-|------|------|
-| ホバー | ハイライト + 名前表示 |
-| 選択 | 枠線 or 発光 |
-| ドリルダウン | ズームアニメーション |
+| State | Representation |
+|-------|----------------|
+| Hover | Highlight + name display (tooltip) |
+| Selected | Glow effect + sidebar shows details |
+| Drilldown | Zoom animation (800ms) |
 
 ---
 
 ## Theme
 
-- OS追従（macOSのダーク/ライト設定に従う）
+- OS-aware (follows macOS dark/light setting)
+- Dark mode default for "space" feel
 
 ---
 
-## Keyboard (MVP)
+## Keyboard Shortcuts
 
-| キー | 動作 |
-|------|------|
-| Esc | 選択解除 |
-| Space | ビューをリセット |
+| Key | Action |
+|-----|--------|
+| Esc | Clear selection |
+| Space | Reset view to center |
+| Backspace | Navigate to parent (drill up) |
+
+---
+
+## Mouse Controls
+
+| Action | Behavior |
+|--------|----------|
+| Left click | Select celestial |
+| Double-click (directory) | Drill down into folder |
+| Right drag | Orbit camera |
+| Scroll | Zoom in/out |
 
 ---
 
 ## Scope (MVP)
 
-- 閲覧のみ（ファイル編集・削除は後回し）
+- View-only (no file editing/deletion)
+- Single folder navigation at a time
 
 ---
 
 ## See Also
 
-- [Core Metaphor](./metaphor.md) - 操作マッピングの定義
-- [Visual Encoding](./visual.md) - 視覚表現ルール
-- [Tech Stack](./tech.md) - UI実装技術（egui）
+- [Core Metaphor](./metaphor.md) - Operation mapping definitions
+- [Visual Encoding](./visual.md) - Visual encoding rules
+- [Tech Stack](./tech.md) - UI implementation (egui)

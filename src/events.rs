@@ -39,3 +39,7 @@ pub struct NavigateToEvent {
 /// Request view reset to default position
 #[derive(Event, Debug, Default)]
 pub struct ViewResetEvent;
+
+/// Request to respawn celestial bodies for current directory
+#[derive(Event, Debug, Default)]
+pub struct RespawnCelestialsEvent;
