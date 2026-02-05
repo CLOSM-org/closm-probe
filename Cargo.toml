@@ -6,13 +6,7 @@ description = "3D storage visualization tool - Universe metaphor for file system
 license = "MIT"
 
 [dependencies]
-bevy = { version = "0.15", features = ["wayland"] }
-
-# GPU Particles for visual effects
-bevy_hanabi = { version = "0.17", default-features = false, features = ["3d"] }
-
-# UI
-bevy_egui = "0.32"
+bevy = "0.15"
 
 [profile.dev]
 opt-level = 1

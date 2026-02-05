@@ -4,63 +4,58 @@ Documentation hub for CLOSM Probe - the 3D storage universe explorer.
 
 ---
 
-## Quick Links
-
-| Document | Description |
-|----------|-------------|
-| [Metaphor Mapping](./specifications/metaphor-mapping.md) | Directory ↔ Universe metaphor reference |
-| [Product Design](./design/product-design.md) | Full product design (metaphor-centric) |
-| [Canvas Rendering](./specifications/canvas-rendering.md) | 3D rendering technical specification |
-
----
-
 ## Directory Structure
 
 ```
 docs/
-├── README.md                     # This file (documentation index)
-├── design/                       # Design specifications
-│   └── product-design.md         # Product design document
-└── specifications/               # Technical specifications
-    ├── metaphor-mapping.md       # Directory ↔ Universe metaphor reference
-    └── canvas-rendering.md       # Canvas 2D rendering details
+├── README.md                           # This file
+├── requirements/                       # Requirements
+│   └── product-requirements.md         # Product requirements document
+├── design/                             # Detailed Design
+│   ├── visual-encoding.md              # Visual encoding specification
+│   └── metaphor-mapping.md             # Directory ↔ Universe mapping
+└── reference/                          # Reference
+    └── bevy-notes.md                   # Bevy/Rust technical notes
 ```
 
 ---
 
-## Product Design Overview
+## Quick Links
 
-The product design document is organized around the **Physical Space Metaphor** - the core innovation of CLOSM Probe.
+### Requirements
 
-### Document Structure
+| Document | Description |
+|----------|-------------|
+| [Product Requirements](./requirements/product-requirements.md) | Vision, users, features, roadmap |
 
-| Part | Focus | Key Sections |
-|------|-------|--------------|
-| **Part I: The Universe Metaphor** | Core concept | Vision, Solar System Model, Visual Encoding |
-| **Part II: Navigating the Universe** | Interaction | Exploration, Discovery, Information Architecture |
-| **Part III: Universe Features** | Capabilities | Core & Extended Features |
-| **Part IV: Building the Universe** | Technical | Rendering, Data, System Architecture |
-| **Part V: Bringing to Users** | Strategy | Users, Roadmap, Market, Metrics |
-| **Appendices** | Reference | Formulas, Risks, References |
+### Detailed Design
 
-### Core Metaphor
+| Document | Description |
+|----------|-------------|
+| [Visual Encoding](./design/visual-encoding.md) | How data maps to visual properties |
+| [Metaphor Mapping](./design/metaphor-mapping.md) | Directory ↔ Universe mapping reference |
 
-See **[Metaphor Mapping Reference](./specifications/metaphor-mapping.md)** for complete directory ↔ universe mappings, visual encoding, and file references.
+### Reference
+
+| Document | Description |
+|----------|-------------|
+| [Bevy Notes](./reference/bevy-notes.md) | Rust/Bevy implementation notes |
 
 ---
 
-## Technical Specifications
+## Core Concept
 
-Implementation details and coding guidelines.
+**CLOSM Probe** visualizes storage as a 3D universe space:
 
-### [Canvas Rendering](./specifications/canvas-rendering.md)
+| Storage | Universe |
+|---------|----------|
+| Directory | Planet |
+| File | Satellite |
+| Size | Body size |
+| Recency | Brightness |
+| Type | Color |
 
-3D rendering implementation using Canvas 2D API:
-- 3D projection (planets/satellites in space)
-- Gradient effects (planet glow, satellite shine)
-- Animation system (orbital motion, pulse effects)
-- User interaction (hit detection, rotation, zoom)
-- Performance optimization (LOD, virtualization)
+See [Product Requirements](./requirements/product-requirements.md) for full vision and [Visual Encoding](./design/visual-encoding.md) for detailed specifications.
 
 ---
 
@@ -68,16 +63,7 @@ Implementation details and coding guidelines.
 
 When updating documentation:
 
-1. Keep documents in **English** (for token efficiency)
-2. Use **metaphor terminology** consistently (planet, satellite, celestial body)
+1. Keep documents in **English**
+2. Use **metaphor terminology** (planet, satellite, celestial body)
 3. Update related documents when making changes
-4. Remove outdated content
-5. Follow markdown best practices
-
----
-
-## Related Files
-
-| File | Location | Description |
-|------|----------|-------------|
-| CLAUDE.md | Project root | Claude Code development guidelines |
+4. Follow markdown best practices
