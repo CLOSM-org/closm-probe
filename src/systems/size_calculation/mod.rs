@@ -1,9 +1,9 @@
 //! Platform-specific directory size calculation
 //!
-//! Uses Spotlight on macOS for maximum performance,
-//! falls back to jwalk parallel traversal on other platforms.
+//! - macOS: Uses `du` command for fast calculation (with pure Rust fallback)
+//! - Other platforms: Uses jwalk crate for parallel traversal
 
-mod spotlight;
+mod macos_du; // macOS implementation (du command)
 
 #[cfg(not(target_os = "macos"))]
 mod jwalk_calc;
@@ -44,7 +44,7 @@ pub fn spawn_size_calculations(paths: Vec<PathBuf>, sender: Sender<SizeResult>) 
     }
 
     #[cfg(target_os = "macos")]
-    spotlight::spawn_calculations(paths, sender);
+    macos_du::spawn_calculations(paths, sender);
 
     #[cfg(not(target_os = "macos"))]
     jwalk_calc::spawn_calculations(paths, sender);
@@ -62,6 +62,11 @@ pub fn update_celestial_sizes(
 ) {
     // Process all available results (non-blocking)
     while let Ok(result) = channel.receiver.try_recv() {
+        info!(
+            "Received size result: {} = {} bytes",
+            result.path.display(),
+            result.size
+        );
         for (entity, mut body, mut transform, planet) in celestials.iter_mut() {
             if body.path == result.path && planet.is_directory {
                 // Update size

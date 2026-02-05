@@ -41,9 +41,17 @@ pub fn create_celestial_material(
 ) -> Handle<StandardMaterial> {
     let base_color = file_type.color();
 
+    // Directories need alpha blending for pulse animation during size calculation
+    let alpha_mode = if file_type == FileType::Directory {
+        AlphaMode::Blend
+    } else {
+        AlphaMode::Opaque
+    };
+
     materials.add(StandardMaterial {
         base_color,
         emissive: LinearRgba::from(base_color) * brightness * 2.0,
+        alpha_mode,
         ..default()
     })
 }
