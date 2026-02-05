@@ -9,6 +9,7 @@ use crate::events::{
 use crate::resources::*;
 use crate::states::*;
 use crate::systems::camera::CameraAnimation;
+use crate::utils::window_to_viewport_cursor;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_panorbit_camera::PanOrbitCamera;
@@ -36,13 +37,20 @@ pub fn update_hover(
         return;
     };
 
-    let Some(cursor_position) = window.cursor_position() else {
+    let Some(window_cursor) = window.cursor_position() else {
         ui_state.hovered_entity = None;
         return;
     };
 
-    // Cast ray from cursor
-    let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_position) else {
+    // Convert window coordinates to viewport coordinates
+    // Returns None if cursor is over sidebar (outside viewport)
+    let Some(viewport_cursor) = window_to_viewport_cursor(window_cursor, camera, window) else {
+        ui_state.hovered_entity = None;
+        return;
+    };
+
+    // Cast ray from cursor (using viewport-local coordinates)
+    let Ok(ray) = camera.viewport_to_world(camera_transform, viewport_cursor) else {
         ui_state.hovered_entity = None;
         return;
     };

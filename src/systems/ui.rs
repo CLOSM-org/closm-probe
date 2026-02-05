@@ -18,6 +18,9 @@ const NOTO_SANS_JP: &[u8] = include_bytes!("../../assets/fonts/NotoSansJP-Regula
 /// Configure fonts for international text support (Japanese, CJK, etc.)
 /// Run once at startup.
 pub fn setup_fonts(mut contexts: EguiContexts) {
+    let ctx = contexts.ctx_mut();
+
+    // Font setup
     let mut fonts = egui::FontDefinitions::default();
 
     // Add Noto Sans JP for CJK support
@@ -39,12 +42,23 @@ pub fn setup_fonts(mut contexts: EguiContexts) {
         .or_default()
         .push("noto_sans_jp".to_owned());
 
-    contexts.ctx_mut().set_fonts(fonts);
+    ctx.set_fonts(fonts);
+
+    // Disable all default strokes/borders globally
+    let mut style = (*ctx.style()).clone();
+    style.visuals.widgets.noninteractive.bg_stroke = egui::Stroke::NONE;
+    style.visuals.widgets.inactive.bg_stroke = egui::Stroke::NONE;
+    style.visuals.window_stroke = egui::Stroke::NONE;
+    ctx.set_style(style);
 }
 
-/// Sidebar colors
-const SIDEBAR_BG: egui::Color32 = egui::Color32::from_rgb(26, 26, 46); // #1a1a2e
-const SIDEBAR_HEADER_BG: egui::Color32 = egui::Color32::from_rgb(35, 35, 55);
+/// Sidebar colors (semi-transparent to show 3D scene behind)
+fn sidebar_bg() -> egui::Color32 {
+    egui::Color32::from_rgba_unmultiplied(26, 26, 46, 230) // #1a1a2e @ 90%
+}
+fn sidebar_header_bg() -> egui::Color32 {
+    egui::Color32::from_rgba_unmultiplied(35, 35, 55, 240)
+}
 const ACCENT_COLOR: egui::Color32 = egui::Color32::from_rgb(100, 180, 255);
 
 /// Render left sidebar for startup state (Empty)
@@ -56,11 +70,15 @@ pub fn render_startup_ui(
     let ctx = contexts.ctx_mut();
     let task_running = dialog_task.task.is_some();
 
-    // Left sidebar
+    // Left sidebar (semi-transparent, no border)
     egui::SidePanel::left("sidebar")
         .resizable(false)
         .exact_width(layout.sidebar_width)
-        .frame(egui::Frame::none().fill(SIDEBAR_BG))
+        .frame(
+            egui::Frame::none()
+                .fill(sidebar_bg())
+                .stroke(egui::Stroke::NONE),
+        )
         .show(ctx, |ui| {
             ui.add_space(16.0);
 
@@ -263,7 +281,11 @@ pub fn render_sidebar(
     egui::SidePanel::left("sidebar")
         .resizable(false)
         .exact_width(layout.sidebar_width)
-        .frame(egui::Frame::none().fill(SIDEBAR_BG))
+        .frame(
+            egui::Frame::none()
+                .fill(sidebar_bg())
+                .stroke(egui::Stroke::NONE),
+        )
         .show(ctx, |ui| {
             ui.add_space(16.0);
 
@@ -307,7 +329,7 @@ pub fn render_sidebar(
                 ui.horizontal(|ui| {
                     ui.add_space(16.0);
                     egui::Frame::none()
-                        .fill(SIDEBAR_HEADER_BG)
+                        .fill(sidebar_header_bg())
                         .rounding(4.0)
                         .inner_margin(8.0)
                         .show(ui, |ui| {

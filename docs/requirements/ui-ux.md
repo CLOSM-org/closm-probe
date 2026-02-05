@@ -24,10 +24,16 @@
 
 | Element | Specification |
 |---------|---------------|
-| Sidebar | **Left side**, always visible, Claude/ChatGPT style |
-| 3D View | Main area. Displays universe space |
+| Sidebar | **Left side**, always visible, Claude/ChatGPT style, semi-transparent |
+| 3D View | Main area (right of sidebar). **Star always centered in this area** |
 | Breadcrumb | Overlay inside 3D view (semi-transparent) |
 | Tooltip | Shows hovered celestial details |
+
+### 3D View Rendering
+
+- **Viewport**: Excludes sidebar area (rendering area = window width - sidebar width)
+- **Center**: Star (current folder) is always centered in the 3D viewport
+- **HiDPI**: Viewport scales correctly on Retina displays
 
 ---
 

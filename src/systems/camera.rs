@@ -6,6 +6,7 @@ use crate::events::{RespawnCelestialsEvent, ViewResetEvent};
 use crate::resources::*;
 use crate::states::*;
 use bevy::prelude::*;
+use bevy::render::camera::Viewport;
 use bevy_panorbit_camera::PanOrbitCamera;
 
 /// Camera animation state
@@ -104,5 +105,38 @@ pub fn handle_view_reset(
                 ));
             next_state.set(ViewingMode::Animating);
         }
+    }
+}
+
+/// Update camera viewport to account for sidebar.
+/// This ensures the star is centered in the rendering area (excluding sidebar).
+pub fn update_camera_viewport(
+    windows: Query<&Window>,
+    layout: Res<UiLayout>,
+    mut cameras: Query<&mut Camera>,
+) {
+    let Ok(window) = windows.get_single() else {
+        return;
+    };
+
+    // Convert logical sidebar width to physical pixels (for HiDPI/Retina)
+    let scale_factor = window.scale_factor();
+    let sidebar_width_physical = (layout.sidebar_width * scale_factor) as u32;
+    let window_width = window.physical_width();
+    let window_height = window.physical_height();
+
+    // Skip if window is too small
+    if window_width <= sidebar_width_physical {
+        return;
+    }
+
+    let viewport_width = window_width - sidebar_width_physical;
+
+    for mut camera in cameras.iter_mut() {
+        camera.viewport = Some(Viewport {
+            physical_position: UVec2::new(sidebar_width_physical, 0),
+            physical_size: UVec2::new(viewport_width, window_height),
+            ..default()
+        });
     }
 }

@@ -57,6 +57,8 @@ fn main() {
         .add_event::<RespawnCelestialsEvent>()
         // Startup systems
         .add_systems(Startup, (setup_theme, setup_fonts))
+        // Global systems (run in all states)
+        .add_systems(Update, update_camera_viewport)
         // State: Empty
         .add_systems(OnEnter(AppState::Empty), setup_camera)
         .add_systems(
