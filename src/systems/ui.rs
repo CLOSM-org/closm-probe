@@ -7,15 +7,18 @@ use crate::events::*;
 use crate::resources::*;
 use crate::states::*;
 use bevy::prelude::*;
+use bevy::tasks::IoTaskPool;
 use bevy_egui::{egui, EguiContexts};
+use futures_lite::future;
 
 /// Render startup screen with "Open Folder" button
 pub fn render_startup_ui(
     mut contexts: EguiContexts,
-    mut pending_folder: ResMut<PendingFolderSelection>,
+    mut dialog_task: ResMut<FileDialogTask>,
     _theme: Res<ThemeConfig>,
 ) {
     let ctx = contexts.ctx_mut();
+    let task_running = dialog_task.task.is_some();
 
     // Center panel
     egui::CentralPanel::default()
@@ -29,14 +32,41 @@ pub fn render_startup_ui(
                 ui.label("3D Storage Visualization");
                 ui.add_space(30.0);
 
-                if ui.button("📂 Open Folder").clicked() {
-                    // Open file dialog (sync for now, async later)
-                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                        pending_folder.path = Some(path);
-                    }
+                // Disable button while dialog is open
+                let button = egui::Button::new("📂 Open Folder");
+                if ui.add_enabled(!task_running, button).clicked() {
+                    // Spawn async file dialog task
+                    let task = IoTaskPool::get().spawn(async move {
+                        let handle = rfd::AsyncFileDialog::new().pick_folder().await;
+                        handle.map(|h| h.path().to_path_buf())
+                    });
+                    dialog_task.task = Some(task);
+                }
+
+                if task_running {
+                    ui.add_space(10.0);
+                    ui.spinner();
                 }
             });
         });
+}
+
+/// Poll async file dialog task for completion
+pub fn poll_file_dialog(
+    mut dialog_task: ResMut<FileDialogTask>,
+    mut pending_folder: ResMut<PendingFolderSelection>,
+) {
+    if let Some(ref mut task) = dialog_task.task {
+        // Check if task is finished without blocking
+        if let Some(result) = future::block_on(future::poll_once(task)) {
+            // Task completed - extract result
+            if let Some(path) = result {
+                pending_folder.path = Some(path);
+            }
+            // Clear the task
+            dialog_task.task = None;
+        }
+    }
 }
 
 /// Check for pending folder selection and transition state

@@ -2,6 +2,8 @@
 //!
 //! Visual encoding and theme settings.
 
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 
 /// Visual encoding configuration

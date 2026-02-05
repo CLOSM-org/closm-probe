@@ -2,6 +2,8 @@
 //!
 //! Track current directory and navigation history.
 
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 use std::path::PathBuf;
 

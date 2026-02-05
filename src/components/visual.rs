@@ -2,6 +2,8 @@
 //!
 //! Components for visual representation of file metadata.
 
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 
 /// Brightness component based on modification time

@@ -2,6 +2,8 @@
 //!
 //! Remove entities and reset state on state transitions.
 
+#![allow(dead_code)]
+
 use crate::components::*;
 use crate::resources::*;
 use bevy::prelude::*;

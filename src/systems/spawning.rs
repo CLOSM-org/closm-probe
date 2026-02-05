@@ -2,6 +2,8 @@
 //!
 //! Spawns stars, planets, and visual elements.
 
+#![allow(dead_code)]
+
 use crate::bundles::*;
 use crate::components::*;
 use crate::resources::*;

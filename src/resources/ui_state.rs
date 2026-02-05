@@ -2,7 +2,11 @@
 //!
 //! Track UI interaction state and layout.
 
+#![allow(dead_code)]
+
 use bevy::prelude::*;
+use bevy::tasks::Task;
+use std::path::PathBuf;
 
 /// UI interaction state
 #[derive(Resource, Debug, Default)]
@@ -42,5 +46,12 @@ impl Default for UiLayout {
 #[derive(Resource, Debug, Default)]
 pub struct PendingFolderSelection {
     /// Selected folder path (set by async dialog)
-    pub path: Option<std::path::PathBuf>,
+    pub path: Option<PathBuf>,
+}
+
+/// Async file dialog task
+#[derive(Resource, Default)]
+pub struct FileDialogTask {
+    /// Running async task for folder picker
+    pub task: Option<Task<Option<PathBuf>>>,
 }

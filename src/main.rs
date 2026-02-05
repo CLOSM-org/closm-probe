@@ -15,6 +15,7 @@ mod systems;
 mod utils;
 
 use events::*;
+use resources::*;
 use states::*;
 use systems::*;
 
@@ -31,6 +32,18 @@ fn main() {
         }))
         .add_plugins(EguiPlugin)
         .add_plugins(PanOrbitCameraPlugin)
+        // Resources (must be registered before state systems)
+        .init_resource::<CurrentDirectory>()
+        .init_resource::<Breadcrumb>()
+        .init_resource::<NavigationHistory>()
+        .init_resource::<DirectoryCache>()
+        .init_resource::<UiState>()
+        .init_resource::<UiLayout>()
+        .init_resource::<VisualConfig>()
+        .init_resource::<CameraConfig>()
+        .init_resource::<PendingFolderSelection>()
+        .init_resource::<FileDialogTask>()
+        .init_resource::<interaction::ClickState>()
         // States
         .init_state::<AppState>()
         .add_sub_state::<ViewingMode>()
@@ -42,12 +55,12 @@ fn main() {
         .add_event::<NavigateToEvent>()
         .add_event::<ViewResetEvent>()
         // Startup systems
-        .add_systems(Startup, (setup_resources, setup_theme))
+        .add_systems(Startup, setup_theme)
         // State: Empty
         .add_systems(OnEnter(AppState::Empty), setup_camera)
         .add_systems(
             Update,
-            (render_startup_ui, check_folder_selection)
+            (render_startup_ui, poll_file_dialog, check_folder_selection)
                 .run_if(in_state(AppState::Empty)),
         )
         // State: Viewing
@@ -76,7 +89,5 @@ fn main() {
             Update,
             handle_view_reset.run_if(in_state(ViewingMode::Idle)),
         )
-        // Resources (initialized via setup_resources)
-        .init_resource::<interaction::ClickState>()
         .run();
 }

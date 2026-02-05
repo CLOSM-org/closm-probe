@@ -2,6 +2,8 @@
 //!
 //! Components for user interaction with celestial bodies.
 
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 
 /// Marker for entities that can be clicked

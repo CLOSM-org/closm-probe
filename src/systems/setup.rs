@@ -1,6 +1,6 @@
 //! Setup systems
 //!
-//! Initialize camera, lighting, and resources.
+//! Initialize camera, lighting, and theme.
 
 use crate::resources::*;
 use bevy::prelude::*;
@@ -31,25 +31,6 @@ pub fn setup_camera(mut commands: Commands, config: Res<CameraConfig>) {
     });
 
     info!("Camera and lighting setup complete");
-}
-
-/// Setup initial resources
-pub fn setup_resources(mut commands: Commands) {
-    // These resources should be initialized with default values
-    commands.insert_resource(CurrentDirectory::default());
-    commands.insert_resource(Breadcrumb::default());
-    commands.insert_resource(NavigationHistory::default());
-    commands.insert_resource(DirectoryCache::default());
-    commands.insert_resource(UiState {
-        show_startup: true,
-        ..default()
-    });
-    commands.insert_resource(UiLayout::default());
-    commands.insert_resource(VisualConfig::default());
-    commands.insert_resource(CameraConfig::default());
-    commands.insert_resource(PendingFolderSelection::default());
-
-    info!("Resources initialized");
 }
 
 /// Detect OS theme and setup theme config

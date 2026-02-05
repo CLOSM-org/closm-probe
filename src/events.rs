@@ -2,6 +2,8 @@
 //!
 //! Event-driven communication between systems.
 
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 use std::path::PathBuf;
 

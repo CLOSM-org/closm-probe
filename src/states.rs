@@ -2,6 +2,8 @@
 //!
 //! Defines the main state flow: Empty → Loading → Viewing
 
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 
 /// Main application state

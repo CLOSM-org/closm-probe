@@ -2,6 +2,8 @@
 //!
 //! Synchronous directory reading using std::fs.
 
+#![allow(dead_code)]
+
 use crate::resources::{DirectoryCache, FileEntry};
 use std::fs;
 use std::path::PathBuf;

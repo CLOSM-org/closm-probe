@@ -2,6 +2,8 @@
 //!
 //! LRU cache for directory contents to avoid repeated filesystem reads.
 
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;

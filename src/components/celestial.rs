@@ -5,6 +5,8 @@
 //! - Child folder → Planet (sphere)
 //! - Child file → Planet (octahedron shape)
 
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 use std::path::PathBuf;
 use std::time::SystemTime;
