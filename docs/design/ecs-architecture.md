@@ -92,7 +92,7 @@ Idle ↔ Animating
 
 | Resource | Description | Fields |
 |----------|-------------|--------|
-| `VisualConfig` | Visual encoding parameters | `size_scale`, `brightness_range` |
+| `VisualConfig` | Visual encoding parameters | `dir_size_min/max`, `file_size_min/max`, `star_size`, `max_display_items` |
 | `ThemeConfig` | Color theme | `dark_mode: bool`, `colors: ThemeColors` |
 | `CameraConfig` | Camera constraints | `zoom_min`, `zoom_max`, `pitch_limit` |
 
@@ -119,7 +119,7 @@ Idle ↔ Animating
 | System | Schedule | Purpose |
 |--------|----------|---------|
 | `setup_camera` | `OnEnter(Empty)` | Initialize camera and lighting |
-| `spawn_starfield` | `OnEnter(Empty)` | Spawn background stars (200, Fibonacci sphere) |
+| `spawn_starfield` | `OnEnter(Empty)` | Spawn background starfield (300 quads, single mesh) |
 | `setup_ui_resources` | `Startup` | Initialize UI resources |
 | `detect_theme` | `Startup` | Detect OS theme preference |
 
@@ -161,7 +161,7 @@ Idle ↔ Animating
 World
 ├── Camera3d
 ├── AmbientLight (Resource)
-├── BackgroundStar[] (200, permanent)
+├── BackgroundStar (300 quads, single mesh, permanent)
 ├── Star (current folder)
 │   └── PointLight
 ├── Planet[] (children)

@@ -10,9 +10,9 @@ Celestial body spawning and scene hierarchy.
 World
 ├── Camera3d + PanOrbitCamera
 ├── AmbientLight (Resource)
-├── BackgroundStar[] (200, permanent)
-│   ├── Mesh3d (sphere, 0.03-0.12)
-│   └── MeshMaterial3d (unlit, emissive)
+├── BackgroundStar (single mesh, 300 quads, permanent)
+│   ├── Mesh3d (per-vertex color quads)
+│   └── MeshMaterial3d (unlit, double_sided)
 ├── Star (current folder)
 │   ├── Mesh3d (sphere)
 │   ├── MeshMaterial3d (emissive)
@@ -56,9 +56,9 @@ Planet representing a child directory.
 | `Brightness` | From modified time |
 | `Clickable` | Yes |
 | `Drillable` | Yes |
-| `Mesh3d` | Sphere (size from visual encoding) |
+| `Mesh3d` | Sphere(1.0) — unit sphere |
 | `MeshMaterial3d` | White with brightness |
-| `Transform` | Orbital position |
+| `Transform` | Orbital position, scale = calculated size |
 
 ### FilePlanetBundle
 
@@ -99,47 +99,9 @@ Layout Algorithm:
 
 ---
 
-## Visual Encoding Functions
+## Visual Encoding
 
-### Size Calculation
-
-```rust
-fn calculate_size(size_bytes: u64, is_directory: bool, config: &VisualConfig) -> f32 {
-    let log_size = (size_bytes as f64 + 1.0).log10() as f32;
-    let normalized = log_size / 12.0; // ~1TB max
-
-    if is_directory {
-        config.dir_size_min + normalized * (config.dir_size_max - config.dir_size_min)
-    } else {
-        config.file_size_min + normalized * (config.file_size_max - config.file_size_min)
-    }
-}
-```
-
-### Brightness Calculation
-
-```rust
-fn calculate_brightness(modified: SystemTime) -> Brightness {
-    let age = modified
-        .elapsed()
-        .map(|d| d.as_secs())
-        .unwrap_or(u64::MAX);
-    Brightness::from_age_seconds(age)
-}
-```
-
-### Material Creation
-
-```rust
-fn create_material(file_type: FileType, brightness: f32) -> StandardMaterial {
-    let base_color = file_type.color();
-    StandardMaterial {
-        base_color: base_color.with_alpha(1.0),
-        emissive: base_color * brightness * 2.0,
-        ..default()
-    }
-}
-```
+Size, brightness, color rules: see [Visual Encoding](../requirements/visual.md) (single source).
 
 ---
 
@@ -180,9 +142,9 @@ OnExit(Viewing):
 
 | Entity | Mesh Type | Note |
 |--------|-----------|------|
-| BackgroundStar | `Sphere::new(0.03-0.12)` | Fibonacci sphere distribution, unlit |
+| BackgroundStar | Single mesh (300 quads) | Per-vertex color, unlit, 1 draw call |
 | Star | `Sphere::new(2.5)` | Fixed size |
-| Directory Planet | `Sphere::new(size)` | Size from encoding |
+| Directory Planet | `Sphere::new(1.0)` | Unit sphere, sized via `transform.scale` |
 | File Planet | Octahedron | Custom mesh, size from encoding |
 | GrandchildRing | Torus or 2D ring | Flat ring around planet |
 | AsteroidBelt | Particles (bevy_hanabi) | GPU particles |

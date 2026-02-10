@@ -20,16 +20,29 @@ Uses `bevy_panorbit_camera` 0.22 for orbital controls.
 ### Configuration
 
 ```rust
+Camera {
+    hdr: true,                       // Required for Bloom
+},
+Tonemapping::TonyMcMapface,          // Desaturating, good with Bloom
+Bloom::NATURAL,                      // intensity 0.15, energy-conserving
 PanOrbitCamera {
-    radius: Some(20.0),      // Initial distance
-    pitch: Some(0.4),        // ~23 degrees
-    yaw: Some(0.0),          // Initial rotation
-    pitch_lower_limit: Some(-80°), // Prevent gimbal lock
+    radius: Some(20.0),              // Initial distance
+    pitch: Some(0.4),                // ~23 degrees
+    yaw: Some(0.0),                  // Initial rotation
+    pitch_lower_limit: Some(-80°),   // Prevent gimbal lock
     pitch_upper_limit: Some(80°),
-    zoom_lower_limit: 5.0,   // Minimum distance
-    zoom_upper_limit: Some(100.0), // Maximum distance
+    zoom_lower_limit: 5.0,           // Minimum distance
+    zoom_upper_limit: Some(100.0),   // Maximum distance
 }
 ```
+
+### Post-Processing
+
+| Component | Value | Purpose |
+|-----------|-------|---------|
+| `hdr` | `true` | Enable HDR rendering for Bloom |
+| `Bloom::NATURAL` | intensity 0.15 | Star halo, subtle planet glow |
+| `Tonemapping::TonyMcMapface` | — | Recommended with Bloom |
 
 ---
 

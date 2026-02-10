@@ -10,8 +10,8 @@
 
 | 対象 | スケール | 範囲 |
 |------|---------|------|
-| ディレクトリ | band + volume-proportional | 0.5 〜 2.0 |
-| ファイル | band + volume-proportional | 0.3 〜 1.8 |
+| ディレクトリ | band + radius-proportional | 0.5 〜 2.0 |
+| ファイル | band + radius-proportional | 0.3 〜 1.8 |
 | 恒星（現在フォルダ） | 固定 | 2.5 |
 
 ### Band Normalization
