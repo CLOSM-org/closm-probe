@@ -66,6 +66,8 @@ pub fn render_startup_ui(
     mut contexts: EguiContexts,
     mut dialog_task: ResMut<FileDialogTask>,
     layout: Res<UiLayout>,
+    history: Res<NavigationHistory>,
+    mut pending_folder: ResMut<PendingFolderSelection>,
 ) {
     let ctx = contexts.ctx_mut();
     let task_running = dialog_task.task.is_some();
@@ -135,7 +137,7 @@ pub fn render_startup_ui(
                 ui.separator();
             });
 
-            // Empty history section
+            // History section
             ui.add_space(16.0);
             ui.horizontal(|ui| {
                 ui.add_space(16.0);
@@ -146,14 +148,37 @@ pub fn render_startup_ui(
                 );
             });
             ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                ui.add_space(24.0);
-                ui.label(
-                    egui::RichText::new("No recent folders")
-                        .color(egui::Color32::from_rgb(100, 100, 120))
-                        .italics(),
-                );
-            });
+
+            if history.entries.is_empty() {
+                ui.horizontal(|ui| {
+                    ui.add_space(24.0);
+                    ui.label(
+                        egui::RichText::new("No recent folders")
+                            .color(egui::Color32::from_rgb(100, 100, 120))
+                            .italics(),
+                    );
+                });
+            } else {
+                for entry in history.entries.iter().take(8) {
+                    let folder_name = entry
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "/".to_string());
+
+                    ui.horizontal(|ui| {
+                        ui.add_space(16.0);
+                        if ui
+                            .link(
+                                egui::RichText::new(format!(" {}", folder_name))
+                                    .color(egui::Color32::from_rgb(200, 200, 220)),
+                            )
+                            .clicked()
+                        {
+                            pending_folder.path = Some(entry.clone());
+                        }
+                    });
+                }
+            }
 
             // Spacer to push settings to bottom
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
@@ -200,6 +225,7 @@ pub fn check_folder_selection(
     mut history: ResMut<NavigationHistory>,
     mut next_state: ResMut<NextState<AppState>>,
     mut folder_events: EventWriter<FolderSelectedEvent>,
+    persistent_cache: Option<Res<PersistentCache>>,
 ) {
     if let Some(path) = pending_folder.path.take() {
         current_dir.path = Some(path.clone());
@@ -207,6 +233,11 @@ pub fn check_folder_selection(
 
         // Add to history
         history.push(path.clone());
+
+        // Persist history
+        if let Some(ref cache) = persistent_cache {
+            cache.write_history(&history.entries);
+        }
 
         folder_events.send(FolderSelectedEvent { path: path.clone() });
         next_state.set(AppState::Viewing);

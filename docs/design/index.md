@@ -13,6 +13,7 @@ Rust/Bevy implementation design documents.
 | [Camera](./camera.md) | Orbital controls, animation |
 | [UI](./ui.md) | egui panels, tooltips, theme |
 | [Size Calculation](./size-calculation.md) | Platform-specific size calculation |
+| [Persistent Cache](./persistent-cache.md) | redb two-tier cache, history persistence |
 
 ---
 

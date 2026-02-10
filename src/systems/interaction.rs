@@ -155,6 +155,7 @@ pub fn handle_drilldown(
     mut next_state: ResMut<NextState<ViewingMode>>,
     celestials: Query<Entity, With<CelestialBody>>,
     asteroid_belts: Query<Entity, With<AsteroidBelt>>,
+    persistent_cache: Option<Res<PersistentCache>>,
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
         return;
@@ -173,6 +174,11 @@ pub fn handle_drilldown(
                     // Push current directory to history
                     if let Some(current_path) = &current_dir.path {
                         history.push(current_path.clone());
+
+                        // Persist history
+                        if let Some(ref cache) = persistent_cache {
+                            cache.write_history(&history.entries);
+                        }
                     }
 
                     // Update current directory
@@ -242,11 +248,17 @@ pub fn handle_navigate_to(
     celestials: Query<Entity, With<CelestialBody>>,
     asteroid_belts: Query<Entity, With<AsteroidBelt>>,
     mut respawn_events: EventWriter<RespawnCelestialsEvent>,
+    persistent_cache: Option<Res<PersistentCache>>,
 ) {
     for event in events.read() {
         // Push current directory to history
         if let Some(current_path) = &current_dir.path {
             history.push(current_path.clone());
+
+            // Persist history
+            if let Some(ref cache) = persistent_cache {
+                cache.write_history(&history.entries);
+            }
         }
 
         // Update current directory

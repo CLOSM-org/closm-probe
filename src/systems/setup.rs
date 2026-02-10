@@ -103,6 +103,35 @@ pub fn spawn_starfield(
     info!("Spawned {} background stars", STAR_COUNT);
 }
 
+/// Initialize persistent cache and load persisted navigation history
+pub fn initialize_persistent_cache(
+    mut commands: Commands,
+    mut history: ResMut<NavigationHistory>,
+) {
+    if let Some(cache) = PersistentCache::new(3600) {
+        // Load persisted history entries (filter to paths that still exist)
+        let persisted = cache.load_history();
+        for entry in persisted {
+            if entry.exists() && !history.entries.contains(&entry) {
+                history.entries.push(entry);
+            }
+        }
+        let max = history.max_entries;
+        history.entries.truncate(max);
+
+        if !history.entries.is_empty() {
+            info!(
+                "Loaded {} history entries from persistent cache",
+                history.entries.len()
+            );
+        }
+
+        commands.insert_resource(cache);
+    } else {
+        warn!("Persistent cache unavailable, running without persistence");
+    }
+}
+
 /// Detect OS theme and setup theme config
 pub fn setup_theme(mut commands: Commands) {
     // Use dark-light crate to detect OS theme

@@ -22,6 +22,7 @@ pub fn spawn_celestials(
     mut cache: ResMut<DirectoryCache>,
     config: Res<VisualConfig>,
     size_channel: Res<SizeCalculationChannel>,
+    persistent_cache: Option<Res<PersistentCache>>,
 ) {
     let Some(path) = &current_dir.path else {
         return;
@@ -76,8 +77,18 @@ pub fn spawn_celestials(
         let brightness = calculate_brightness(entry.modified);
 
         if entry.is_directory {
-            // Directory planet (sphere) - starts at minimum size
-            let size = calculate_size(entry.size_bytes, true, &config);
+            // Check persistent cache for pre-calculated size
+            let cached_size = persistent_cache
+                .as_ref()
+                .and_then(|pc| pc.get_size(&entry.path));
+
+            let (effective_size_bytes, has_cached_size) = match cached_size {
+                Some(size) => (size, true),
+                None => (entry.size_bytes, false),
+            };
+
+            // Directory planet (sphere)
+            let size = calculate_size(effective_size_bytes, true, &config);
             let mesh = create_sphere_mesh(size, &mut meshes);
             let material = create_celestial_material(
                 FileType::Directory,
@@ -85,25 +96,30 @@ pub fn spawn_celestials(
                 &mut materials,
             );
 
-            let planet_entity = commands
-                .spawn((
-                    DirectoryPlanetBundle::new(
-                        entry.name.clone(),
-                        entry.path.clone(),
-                        entry.size_bytes,
-                        entry.modified,
-                        brightness,
-                        position,
-                        mesh,
-                        material,
-                    ),
-                    PulseAnimation::default(),
-                    PendingSizeCalculation,
-                ))
-                .id();
+            let bundle = DirectoryPlanetBundle::new(
+                entry.name.clone(),
+                entry.path.clone(),
+                effective_size_bytes,
+                entry.modified,
+                brightness,
+                position,
+                mesh,
+                material,
+            );
 
-            // Queue for size calculation
-            pending_calculations.push(entry.path.clone());
+            let planet_entity = if has_cached_size {
+                // Cached: spawn at final size, no pulse animation
+                commands.spawn(bundle).id()
+            } else {
+                // Uncached: spawn with pulse animation, queue calculation
+                commands
+                    .spawn((bundle, PulseAnimation::default(), PendingSizeCalculation))
+                    .id()
+            };
+
+            if !has_cached_size {
+                pending_calculations.push(entry.path.clone());
+            }
 
             // Check for grandchildren and add ring if any
             let grandchild_count = count_directory_items(&entry.path);
@@ -177,6 +193,7 @@ pub fn handle_respawn_celestials(
     mut cache: ResMut<DirectoryCache>,
     config: Res<VisualConfig>,
     size_channel: Res<SizeCalculationChannel>,
+    persistent_cache: Option<Res<PersistentCache>>,
 ) {
     // Only process if there's an event
     if events.read().next().is_none() {
@@ -239,30 +256,43 @@ pub fn handle_respawn_celestials(
         let brightness = calculate_brightness(entry.modified);
 
         if entry.is_directory {
-            let size = calculate_size(entry.size_bytes, true, &config);
+            // Check persistent cache for pre-calculated size
+            let cached_size = persistent_cache
+                .as_ref()
+                .and_then(|pc| pc.get_size(&entry.path));
+
+            let (effective_size_bytes, has_cached_size) = match cached_size {
+                Some(size) => (size, true),
+                None => (entry.size_bytes, false),
+            };
+
+            let size = calculate_size(effective_size_bytes, true, &config);
             let mesh = create_sphere_mesh(size, &mut meshes);
             let material =
                 create_celestial_material(FileType::Directory, brightness.value, &mut materials);
 
-            let planet_entity = commands
-                .spawn((
-                    DirectoryPlanetBundle::new(
-                        entry.name.clone(),
-                        entry.path.clone(),
-                        entry.size_bytes,
-                        entry.modified,
-                        brightness,
-                        position,
-                        mesh,
-                        material,
-                    ),
-                    PulseAnimation::default(),
-                    PendingSizeCalculation,
-                ))
-                .id();
+            let bundle = DirectoryPlanetBundle::new(
+                entry.name.clone(),
+                entry.path.clone(),
+                effective_size_bytes,
+                entry.modified,
+                brightness,
+                position,
+                mesh,
+                material,
+            );
 
-            // Queue for size calculation
-            pending_calculations.push(entry.path.clone());
+            let planet_entity = if has_cached_size {
+                commands.spawn(bundle).id()
+            } else {
+                commands
+                    .spawn((bundle, PulseAnimation::default(), PendingSizeCalculation))
+                    .id()
+            };
+
+            if !has_cached_size {
+                pending_calculations.push(entry.path.clone());
+            }
 
             let grandchild_count = count_directory_items(&entry.path);
             if grandchild_count > 0 {

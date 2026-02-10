@@ -13,7 +13,7 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use std::path::PathBuf;
 
 use crate::components::{CelestialBody, Planet, PendingSizeCalculation, PulseAnimation};
-use crate::resources::VisualConfig;
+use crate::resources::{PersistentCache, VisualConfig};
 use crate::utils::calculate_size;
 
 /// Result of a size calculation
@@ -59,6 +59,7 @@ pub fn update_celestial_sizes(
         With<PendingSizeCalculation>,
     >,
     config: Res<VisualConfig>,
+    persistent_cache: Option<Res<PersistentCache>>,
 ) {
     // Process all available results (non-blocking)
     while let Ok(result) = channel.receiver.try_recv() {
@@ -81,6 +82,11 @@ pub fn update_celestial_sizes(
                     .entity(entity)
                     .remove::<PulseAnimation>()
                     .remove::<PendingSizeCalculation>();
+
+                // Persist to disk cache
+                if let Some(ref cache) = persistent_cache {
+                    cache.write_size(&result.path, result.size);
+                }
 
                 info!(
                     "Size calculated: {} = {} bytes",
