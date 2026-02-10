@@ -2,7 +2,7 @@
 
 # UI/UX Design
 
-画面構成・操作・視覚フィードバックの定義。
+Screen layout, interaction, and visual feedback definitions.
 
 ---
 
@@ -10,24 +10,32 @@
 
 ```
 ┌──────────┬────────────────────────────────────┐
-│          │ [/ > Documents > Projects]         │
-│  Side    │           (breadcrumb overlay)     │
-│  bar     │                                    │
-│          │           3D Universe              │
-│ [Spatial │                                    │
-│    nav]  │         tooltip [file.txt]         │
 │          │                                    │
-│  ──────  │                                    │
-│  Settings│                                    │
+│ Sidebar  │  Main Content Area                 │
+│ (260px)  │  (switches based on MainView)      │
+│          │                                    │
+│  Always  │  Universe: 3D scene + overlays     │
+│  same    │  Settings: egui CentralPanel       │
+│  struct  │                                    │
+│          │                                    │
 └──────────┴────────────────────────────────────┘
 ```
 
 | Element | Specification |
 |---------|---------------|
-| Sidebar | **Left side**, always visible, spatial navigation style, semi-transparent |
-| 3D View | Main area (right of sidebar). **Star always centered in this area** |
-| Breadcrumb | Overlay inside 3D view (semi-transparent) |
-| Tooltip | Shows hovered celestial details |
+| Sidebar | **Left side**, fixed navigation controller, always same structure |
+| Main Content | Switches based on `MainView` state |
+| Breadcrumb | Overlay inside 3D view (Universe mode only) |
+| Tooltip | Hovered celestial details (Universe mode only) |
+
+### MainView Switching
+
+| View | Content | Condition |
+|------|---------|-----------|
+| `Universe` | 3D scene + breadcrumb/tooltip overlays | Default view |
+| `Settings` | Full-page settings panel (CentralPanel) | Settings bar clicked |
+
+**Key principle**: Sidebar = navigation controller (always same structure), Main area = content switching.
 
 ### 3D View Rendering
 
@@ -37,47 +45,48 @@
 
 ---
 
-## Sidebar Design (Spatial Navigation Style)
+## Sidebar Design (3-Zone Layout)
 
-Design philosophy: **Spatial navigation** (VS Code Explorer / Figma Pages pattern), not conversation management.
+Design philosophy: **Spatial navigation** (VS Code Explorer / Figma Pages pattern). Sidebar is a fixed navigation controller, not content area.
 
 ```
 ┌─────────────────────┐
-│ CLOSM Probe         │  ← Identity
+│ CLOSM Probe         │  Zone 1: Fixed Top
+│ [Open Folder]       │
 │                     │
-│ ┌─────────────────┐ │
-│ │ 📂 Open Folder  │ │  ← Primary Action (Fitts's Law)
-│ └─────────────────┘ │
-│                     │
-│  Recent             │  ← Temporal section
-│  Documents          │    (Gestalt spacing, no dividers)
-│    ~/Work/docs/...  │    ← Path hint (secondary color)
-│  Downloads          │
-│    ~/Users/dl/...   │
-│                     │    ← Spacing = visual group separator
-│  Selected           │  ← Context section
-│  file.txt           │
-│  Size: 1.2 KB       │
-│  Modified: 2h ago   │
-│                     │
-│                     │
-│  ⚙ Settings ─────┐ │  ← System (bottom, L1 expand)
-│  │ Theme: [Dark]  │ │
-│  │ Limit: [10]    │ │
-│  │ Hidden: [ ]    │ │
-│  └────────────────┘ │
+│ ┌─ ScrollArea ────┐ │  Zone 2: Scrollable Middle
+│ │ Recent           │ │    height = available - footer_height
+│ │  Documents       │ │
+│ │   ~/Work/docs    │ │
+│ │  Downloads       │ │
+│ │   ~/Users/dl     │ │
+│ │                  │ │
+│ │ Selected         │ │  (Viewing state only)
+│ │  file.txt        │ │
+│ │  Size: 1.2 KB    │ │
+│ └──────────────────┘ │
+│                      │
+│ [Settings]           │  Zone 3: Fixed Bottom (44px)
 └─────────────────────┘
 ```
 
+### Sidebar Zones
+
+| Zone | Content | Behavior |
+|------|---------|----------|
+| Zone 1: Fixed Top | Identity + Open Folder button | Always visible, never scrolls |
+| Zone 2: Scrollable Middle | Recent + Selected info | Scrolls when content overflows |
+| Zone 3: Fixed Bottom | Settings bar (44px) | Always visible, toggles MainView |
+
 ### Sidebar Sections
 
-| Section | Content | Visibility |
-|---------|---------|------------|
-| Identity | App title | Always |
-| Primary Action | Open Folder button (accent, full-width) | Always |
-| Temporal | Recent folders with path hints | Always |
-| Context | Selected celestial details (name, size, modified) | When selected |
-| System | Settings panel (theme, display limit, hidden files) | Click to expand (L1) |
+| Section | Zone | Content | Visibility |
+|---------|------|---------|------------|
+| Identity | 1 | App title | Always |
+| Primary Action | 1 | Open Folder button (accent, full-width) | Always |
+| Temporal | 2 | Recent folders with path hints | Always |
+| Context | 2 | Selected celestial details (name, size, modified) | Viewing + selected |
+| Settings bar | 3 | Navigation toggle to Settings view | Always |
 
 ### Section Grouping
 
@@ -90,6 +99,7 @@ Uses **Gestalt spacing** (not explicit dividers): subtle spacing and background 
 | Width | 260px (fixed) |
 | Background | Dark theme: `#1a1a2e` / Light: `#f5f5f5` |
 | Padding | 16px |
+| Footer height | 44px |
 
 ### History Entries
 
@@ -99,7 +109,35 @@ Uses **Gestalt spacing** (not explicit dividers): subtle spacing and background 
 | Configurable range | 10 - 30 (via Settings) |
 | Entry format | Folder name + shortened path hint (secondary color) |
 
-### Settings Panel
+---
+
+## Main Content Area
+
+### Universe View (default)
+
+3D scene with overlay elements:
+- Breadcrumb navigation (top of 3D area)
+- Hover tooltip (near hovered entity)
+
+### Settings View
+
+Full-page settings panel displayed in CentralPanel when `MainView::Settings`.
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│     Settings                        │
+│                                     │
+│     Appearance                      │
+│       Theme    [Dark] / [Light]     │
+│                                     │
+│     Display                         │
+│       History limit  ═══○═══  10    │
+│       [ ] Show hidden files         │
+│                                     │
+│                                     │
+└─────────────────────────────────────┘
+```
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
@@ -130,7 +168,7 @@ Uses **Gestalt spacing** (not explicit dividers): subtle spacing and background 
 ## Theme
 
 - OS-aware at startup (follows macOS dark/light setting)
-- Manual toggle available in Settings panel
+- Manual toggle available in Settings view
 - Dark mode default for "space" feel
 
 ---

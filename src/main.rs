@@ -60,7 +60,7 @@ fn main() {
         // Startup systems
         .add_systems(Startup, (setup_theme, setup_fonts, initialize_persistent_cache))
         // Global systems (run in all states)
-        .add_systems(Update, update_camera_viewport)
+        .add_systems(Update, (update_camera_viewport, sync_main_view_camera, handle_keyboard))
         // State: Empty
         .add_systems(OnEnter(AppState::Empty), (setup_camera, spawn_starfield))
         .add_systems(
@@ -77,7 +77,6 @@ fn main() {
                 update_hover,
                 handle_selection,
                 handle_drilldown,
-                handle_keyboard,
                 handle_navigate_to,
                 handle_respawn_celestials,
                 update_celestial_sizes,
@@ -85,6 +84,8 @@ fn main() {
                 render_breadcrumb,
                 render_sidebar,
                 render_tooltip,
+                poll_file_dialog,
+                check_folder_selection,
             )
                 .run_if(in_state(AppState::Viewing)),
         )

@@ -83,9 +83,9 @@ Idle ↔ Animating
 
 | Resource | Description | Fields |
 |----------|-------------|--------|
-| `UiState` | UI interaction state | `hovered_entity: Option<Entity>`, `selected_entity: Option<Entity>` |
+| `UiState` | UI interaction state | `hovered_entity: Option<Entity>`, `selected_entity: Option<Entity>`, `main_view: MainView` |
 | `UiLayout` | Layout dimensions | `sidebar_width: f32` (260.0), `padding: f32` (16.0) |
-| `SidebarSettings` | Settings panel state | `settings_open: bool`, `history_limit: usize` (10), `show_hidden_files: bool` |
+| `SidebarSettings` | User preferences | `history_limit: usize` (10), `show_hidden_files: bool` |
 | `PendingFolderSelection` | Async dialog result | `path: Option<PathBuf>` |
 | `FileDialogTask` | Running async dialog | `task: Option<Task<Option<PathBuf>>>` |
 
@@ -139,18 +139,19 @@ Idle ↔ Animating
 
 | System | Schedule | Purpose |
 |--------|----------|---------|
-| `render_startup_ui` | `Update` in `Empty` | Left sidebar with Open Folder |
-| `poll_file_dialog` | `Update` in `Empty` | Poll async dialog task |
-| `check_folder_selection` | `Update` in `Empty` | Detect pending selection, transition state |
-| `update_hover` | `Update` in `Viewing` | Detect hovered entity |
-| `handle_selection` | `Update` in `Viewing` | Process clicks |
+| `render_startup_ui` | `Update` in `Empty` | Sidebar + Settings page (single-system rendering) |
+| `poll_file_dialog` | `Update` in `Empty`+`Viewing` | Poll async dialog task |
+| `check_folder_selection` | `Update` in `Empty`+`Viewing` | Detect pending selection, transition state, reset MainView |
+| `update_hover` | `Update` in `Viewing` | Detect hovered entity (Universe only) |
+| `handle_selection` | `Update` in `Viewing` | Process clicks (Universe only) |
 | `handle_drilldown` | `Update` in `Viewing` | Process double-clicks, start animation |
-| `handle_keyboard` | `Update` in `Viewing` | Esc, Space keys |
-| `handle_navigate_to` | `Update` in `Viewing` | Process breadcrumb/history navigation |
+| `handle_keyboard` | `Update` (global) | Esc (close Settings / clear selection), Space (reset view) |
+| `handle_navigate_to` | `Update` in `Viewing` | Process breadcrumb/history navigation, reset MainView |
 | `handle_respawn_celestials` | `Update` in `Viewing` | Spawn celestials on event |
-| `render_breadcrumb` | `Update` in `Viewing` | Breadcrumb overlay |
-| `render_sidebar` | `Update` in `Viewing` | Left sidebar with history/selection |
-| `render_tooltip` | `Update` in `Viewing` | Hover tooltip |
+| `render_breadcrumb` | `Update` in `Viewing` | Breadcrumb overlay (Universe only) |
+| `render_sidebar` | `Update` in `Viewing` | Sidebar + Settings page (single-system rendering) |
+| `render_tooltip` | `Update` in `Viewing` | Hover tooltip (Universe only) |
+| `sync_main_view_camera` | `Update` (global) | Toggle PanOrbitCamera.enabled per MainView |
 | `animate_camera` | `Update` in `Animating` | Camera transitions, sends respawn event |
 | `handle_view_reset` | `Update` in `Idle` | Process view reset request |
 

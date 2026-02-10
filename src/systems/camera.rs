@@ -108,6 +108,20 @@ pub fn handle_view_reset(
     }
 }
 
+/// Sync orbit input with MainView.
+/// Camera always renders (no is_active toggle — avoids frame-gap flicker).
+/// CentralPanel covers 3D when Settings is shown.
+pub fn sync_main_view_camera(
+    ui_state: Res<UiState>,
+    mut cameras: Query<&mut PanOrbitCamera>,
+) {
+    let universe_active = ui_state.main_view == MainView::Universe;
+
+    for mut orbit in cameras.iter_mut() {
+        orbit.enabled = universe_active;
+    }
+}
+
 /// Update camera viewport to account for sidebar.
 /// This ensures the star is centered in the rendering area (excluding sidebar).
 pub fn update_camera_viewport(

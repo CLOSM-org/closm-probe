@@ -2,11 +2,19 @@
 //!
 //! Track UI interaction state and layout.
 
-#![allow(dead_code)]
-
 use bevy::prelude::*;
 use bevy::tasks::Task;
 use std::path::PathBuf;
+
+/// Which content is displayed in the main area
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum MainView {
+    /// 3D universe scene with breadcrumb/tooltip overlays
+    #[default]
+    Universe,
+    /// Settings page (CentralPanel)
+    Settings,
+}
 
 /// UI interaction state
 #[derive(Resource, Debug, Default)]
@@ -15,10 +23,8 @@ pub struct UiState {
     pub hovered_entity: Option<Entity>,
     /// Currently selected entity
     pub selected_entity: Option<Entity>,
-    /// Sidebar visibility
-    pub sidebar_open: bool,
-    /// Show startup screen
-    pub show_startup: bool,
+    /// Current main area view
+    pub main_view: MainView,
 }
 
 /// UI layout dimensions
@@ -56,11 +62,9 @@ pub struct FileDialogTask {
     pub task: Option<Task<Option<PathBuf>>>,
 }
 
-/// Sidebar settings (user preferences + panel state)
+/// Sidebar settings (user preferences)
 #[derive(Resource, Debug)]
 pub struct SidebarSettings {
-    /// Whether settings panel is expanded
-    pub settings_open: bool,
     /// Max history entries displayed (range: 10-30)
     pub history_limit: usize,
     /// Show hidden files (dotfiles) in visualization
@@ -70,7 +74,6 @@ pub struct SidebarSettings {
 impl Default for SidebarSettings {
     fn default() -> Self {
         Self {
-            settings_open: false,
             history_limit: 10,
             show_hidden_files: false,
         }

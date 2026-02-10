@@ -30,6 +30,12 @@ pub fn update_hover(
     camera_query: Query<(&Camera, &GlobalTransform)>,
     celestials: Query<(Entity, &GlobalTransform, &CelestialBody), With<Clickable>>,
 ) {
+    // No hover detection when 3D scene is hidden
+    if ui_state.main_view != MainView::Universe {
+        ui_state.hovered_entity = None;
+        return;
+    }
+
     let Ok(window) = window_query.get_single() else {
         return;
     };
@@ -107,6 +113,11 @@ pub fn handle_selection(
     mouse: Res<ButtonInput<MouseButton>>,
     time: Res<Time>,
 ) {
+    // No selection when 3D scene is hidden
+    if ui_state.main_view != MainView::Universe {
+        return;
+    }
+
     if !mouse.just_pressed(MouseButton::Left) {
         return;
     }
@@ -157,6 +168,11 @@ pub fn handle_drilldown(
     asteroid_belts: Query<Entity, With<AsteroidBelt>>,
     persistent_cache: Option<Res<PersistentCache>>,
 ) {
+    // No drilldown when 3D scene is hidden
+    if ui_state.main_view != MainView::Universe {
+        return;
+    }
+
     if !mouse.just_pressed(MouseButton::Left) {
         return;
     }
@@ -217,23 +233,29 @@ pub fn handle_drilldown(
     }
 }
 
-/// Handle keyboard shortcuts
+/// Handle keyboard shortcuts (runs globally — all states)
 pub fn handle_keyboard(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut ui_state: ResMut<UiState>,
     mut selection_events: EventWriter<SelectionChangedEvent>,
     mut view_reset_events: EventWriter<ViewResetEvent>,
+    state: Res<State<AppState>>,
 ) {
-    // Esc - clear selection
+    // Esc: close Settings first, then clear selection
     if keyboard.just_pressed(KeyCode::Escape) {
-        if ui_state.selected_entity.is_some() {
+        if ui_state.main_view == MainView::Settings {
+            ui_state.main_view = MainView::Universe;
+        } else if *state.get() == AppState::Viewing && ui_state.selected_entity.is_some() {
             ui_state.selected_entity = None;
             selection_events.send(SelectionChangedEvent { entity: None });
         }
     }
 
-    // Space - reset view
-    if keyboard.just_pressed(KeyCode::Space) {
+    // Space - reset view (Viewing + Universe only)
+    if keyboard.just_pressed(KeyCode::Space)
+        && *state.get() == AppState::Viewing
+        && ui_state.main_view == MainView::Universe
+    {
         view_reset_events.send(ViewResetEvent);
     }
 }
@@ -249,8 +271,11 @@ pub fn handle_navigate_to(
     asteroid_belts: Query<Entity, With<AsteroidBelt>>,
     mut respawn_events: EventWriter<RespawnCelestialsEvent>,
     persistent_cache: Option<Res<PersistentCache>>,
+    mut ui_state: ResMut<UiState>,
 ) {
     for event in events.read() {
+        // Navigation → always return to Universe
+        ui_state.main_view = MainView::Universe;
         // Push current directory to history
         if let Some(current_path) = &current_dir.path {
             history.push(current_path.clone());
