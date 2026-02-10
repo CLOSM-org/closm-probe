@@ -214,28 +214,3 @@ cargo fmt            # Format code
 
 **Full specification**: See `docs/requirements/visual.md`.
 
----
-
-## Current Iteration: Issues
-
-**Iteration 1 Issues** (2026-02-05):
-
-| # | Issue | Priority |
-|---|-------|----------|
-| 1 | Path navigation breaks 3D display (never re-renders after drilldown) | P0 |
-| 2 | Sidebar should be on left side (like Claude/ChatGPT) | P1 |
-| 3 | Sidebar UI needs modern chat-style redesign | P1 |
-| 4 | No view/directory selection feature in UI | P1 |
-
-### Testing Checklist
-
-| Test | Status |
-|------|--------|
-| Startup → Empty universe + "Open Folder" | ✅ |
-| Select folder → Celestials spawn | ✅ |
-| Hover → Tooltip | ✅ |
-| Click → Selection | ⚠️ Needs verification |
-| Double-click → Drilldown | ❌ Broken (Issue #1) |
-| Breadcrumb → Navigate | ❌ Broken (Issue #1) |
-| Space → Reset view | ⚠️ Needs verification |
-| Esc → Clear selection | ⚠️ Needs verification |
