@@ -25,7 +25,7 @@ Magnitude bands with log-linear interpolation within each band:
 | MB | 1 MB - 1 GB | 0.35 - 0.70 |
 | GB | 1 GB - 1 TB | 0.70 - 1.00 |
 
-**Volume-proportional mapping**: `radius = (min³ + normalized * (max³ - min³))^(1/3)` — visual volume (∝ r³) scales linearly with normalized size. Directory meshes use unit sphere (`Sphere::new(1.0)`) with `transform.scale` for sizing.
+**Radius-proportional mapping**: `radius = min + normalized * (max - min)` — volume (∝ r³) amplifies size differences for clear visual distinction. Directory meshes use unit sphere (`Sphere::new(1.0)`) with `transform.scale` for sizing.
 
 ---
 

@@ -10,20 +10,18 @@ use std::time::SystemTime;
 
 /// Calculate celestial body size from file size
 ///
-/// Uses band-based normalization (KB/MB/GB/TB bands) with volume-proportional radius.
+/// Uses band-based normalization (KB/MB/GB/TB bands) with radius-proportional mapping.
 pub fn calculate_size(size_bytes: u64, is_directory: bool, config: &VisualConfig) -> f32 {
     let normalized = band_normalize(size_bytes);
 
-    // Volume-proportional mapping: radius = (min³ + t*(max³ - min³))^(1/3)
-    // This ensures visual volume (∝ r³) scales linearly with normalized size.
+    // Radius-proportional: radius = min + t * (max - min)
+    // Volume scales as radius³, so visual size differences are amplified.
     let (min, max) = if is_directory {
         (config.dir_size_min, config.dir_size_max)
     } else {
         (config.file_size_min, config.file_size_max)
     };
-    let min3 = min * min * min;
-    let max3 = max * max * max;
-    (min3 + normalized * (max3 - min3)).cbrt()
+    min + normalized * (max - min)
 }
 
 /// Normalize byte size using magnitude bands for perceptual differentiation.
