@@ -2,157 +2,116 @@
 
 # Size Calculation
 
-ディレクトリ/ファイルサイズ計算の要件定義。
+Directory/file size calculation requirements.
 
 ---
 
 ## Overview
 
-| 項目 | 決定内容 |
+| Item | Decision |
 |------|----------|
-| **計算タイミング** | フォルダ表示時に自動（バックグラウンド） |
-| **計算対象** | 全ての子ディレクトリ |
-| **高速化方針** | 最高性能を優先 |
-| **アーキテクチャ** | OS依存部分をモジュール化、ビルド時に最適構成 |
+| **Timing** | Automatic on folder display (background) |
+| **Target** | All child directories |
+| **Strategy** | Platform-optimized, fastest available method |
+| **Architecture** | Platform-specific modules via `#[cfg]` at build time |
 
 ---
 
-## Architecture: Platform Abstraction
+## Platform Strategy
 
-```
-┌─────────────────────────────────────────────────┐
-│              SizeCalculator Trait               │
-│  fn calculate(&self, path: &Path) -> u64        │
-│  fn calculate_async(&self, path: &Path) -> Rx   │
-└─────────────────────────────────────────────────┘
-            │                    │
-            ▼                    ▼
-┌─────────────────┐    ┌─────────────────┐
-│ SpotlightCalc   │    │ JwalkCalc       │
-│ (macOS)         │    │ (Cross-platform)│
-│ #[cfg(macos)]   │    │ #[cfg(not)]     │
-└─────────────────┘    └─────────────────┘
+```mermaid
+flowchart LR
+    A["macOS"] --> B["du -sk command"]
+    B -->|Fail| C["fs::read_dir fallback"]
+    D["Windows/Linux"] --> E["jwalk parallel traversal"]
 ```
 
-### ビルド時選択
+### macOS (Primary)
 
-```toml
-# Cargo.toml
-[features]
-default = ["spotlight"]  # macOSデフォルト
-spotlight = []           # macOS Spotlight API
-jwalk = ["dep:jwalk"]    # クロスプラットフォーム
-```
+| Item | Value |
+|------|-------|
+| Method | `du -sk` command |
+| Fallback | `fs::read_dir` recursive traversal |
+| Threading | `std::thread::spawn` |
 
----
+### Windows/Linux (Fallback)
 
-## Platform: macOS (Primary)
-
-| 項目 | 値 |
-|------|-----|
-| API | Spotlight (mdfind/mdls) |
-| 期待性能 | 10x+ 高速 |
-| 制限 | インデックス済みファイルのみ |
-
-### Spotlight API
-
-```bash
-# ディレクトリ内の全ファイルサイズ合計
-mdfind -onlyin /path "kMDItemFSSize > 0" -attr kMDItemFSSize
-```
-
----
-
-## Platform: Windows/Linux (Fallback)
-
-| 項目 | 値 |
-|------|-----|
-| 実装 | jwalk + rayon 並列走査 |
-| 期待性能 | 4x 高速（walkdir比） |
-| 依存 | `jwalk = "0.8"` |
+| Item | Value |
+|------|-------|
+| Method | `jwalk::WalkDir` parallel traversal |
+| Expected performance | 4x faster than walkdir |
+| Dependency | `jwalk = "0.8"` |
 
 ---
 
 ## UI Behavior
 
-### 表示フロー
+### Display Flow
 
 ```mermaid
 flowchart LR
-    A["フォルダ選択"] --> B["天体を最小サイズで即座に表示"]
-    B --> C["パルスアニメーション開始"]
-    C --> D["バックグラウンド計算"]
-    D --> E["計算完了"]
-    E --> F["サイズ反映 + アニメーション停止"]
+    A["Folder selected"] --> B["Show celestials at min size"]
+    B --> C["Start pulse animation"]
+    C --> D["Background calculation"]
+    D --> E["Calculation complete"]
+    E --> F["Update size + stop animation"]
 ```
 
-### 計算中の視覚表現
+### Visual States
 
-| 状態 | 表現 |
-|------|------|
-| 計算中 | **パルス（明滅）アニメーション** |
-| 完了 | アニメーション停止、正しいサイズに更新 |
-| エラー | アニメーション停止、最小サイズのまま |
+| State | Representation |
+|-------|---------------|
+| Calculating | **Pulse animation** (sin wave alpha, 2Hz) |
+| Complete | Animation stops, correct size applied |
+| Error | Animation stops, minimum size retained |
 
 ---
 
 ## Data Flow
 
 ```
-1. フォルダ選択
+1. Folder selected
    ↓
-2. read_directory() → FileEntry { size_bytes: 0 } でディレクトリ生成
+2. Check PersistentCache → HIT: use cached size, skip pulse
+   ↓ (MISS)
+3. spawn_celestials() → entities at min size + PulseAnimation
    ↓
-3. spawn_celestials() → 最小サイズで天体表示 + PulseAnimation追加
+4. spawn_size_calculations() → background thread
    ↓
-4. IoTaskPool::spawn() → SizeCalculator::calculate_async()
+5. crossbeam channel sends SizeResult
    ↓
-5. async_channel で結果を送信
-   ↓
-6. update_celestial_sizes() → エンティティ更新 + アニメーション停止
+6. update_celestial_sizes() → update entity + stop animation + cache write
 ```
 
 ---
 
-## Component Design
+## Components
 
-### 新規コンポーネント
+| Component | Purpose |
+|-----------|---------|
+| `PendingSizeCalculation` | Marker: calculation in progress |
+| `PulseAnimation` | Alpha animation state |
 
-| コンポーネント | 用途 |
-|---------------|------|
-| `PendingSizeCalculation` | 計算待ちマーカー |
-| `PulseAnimation` | 明滅アニメーション状態 |
+## Resources
 
-### 新規リソース
-
-| リソース | 用途 |
-|---------|------|
-| `SizeCalculationChannel` | バックグラウンド計算結果の受信 |
+| Resource | Purpose |
+|----------|---------|
+| `SizeCalculationChannel` | crossbeam bounded channel for results |
+| `PersistentCache` | redb disk cache (TTL 3600s) |
 
 ---
 
 ## Performance Targets
 
-| プラットフォーム | フォルダ規模 | 目標時間 |
-|-----------------|-------------|----------|
-| macOS (Spotlight) | 100,000 files | < 1秒 |
-| Others (jwalk) | 100,000 files | < 5秒 |
-
----
-
-## Implementation Priority
-
-| 優先度 | 内容 |
-|--------|------|
-| **P0** | macOS Spotlight実装 |
-| **P0** | パルスアニメーション |
-| **P0** | IoTaskPoolバックグラウンド計算 |
-| **P1** | jwalkフォールバック実装 |
-| **P2** | キャッシュ追加 |
+| Platform | Scale | Target |
+|----------|-------|--------|
+| macOS (`du`) | 100,000 files | < 1s |
+| Others (jwalk) | 100,000 files | < 5s |
 
 ---
 
 ## See Also
 
-- [Visual Encoding](./visual.md) - サイズ → 天体サイズのマッピング
-- [Size Calculation Research](../reference/size-calculation-research.md) - 技術調査結果
+- [Visual Encoding](./visual.md) — Size → celestial body size mapping
+- [Size Calculation Design](../design/size-calculation.md) — Implementation details
+- [Persistent Cache Design](../design/persistent-cache.md) — Cache architecture

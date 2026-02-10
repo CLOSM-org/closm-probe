@@ -26,15 +26,20 @@ src/
 ├── events.rs         # All event definitions
 ├── bundles.rs        # StarBundle, PlanetBundle, etc.
 ├── components/       # ECS components
+│   ├── mod.rs
 │   ├── celestial.rs
 │   ├── interaction.rs
-│   └── visual.rs
+│   ├── visual.rs
+│   └── animation.rs      # PulseAnimation
 ├── resources/        # Global state
+│   ├── mod.rs
 │   ├── navigation.rs
 │   ├── cache.rs
+│   ├── persistent_cache.rs  # redb two-tier cache
 │   ├── ui_state.rs
 │   └── config.rs
 ├── systems/          # ECS systems
+│   ├── mod.rs
 │   ├── setup.rs
 │   ├── cleanup.rs
 │   ├── filesystem.rs
@@ -44,10 +49,12 @@ src/
 │   ├── ui.rs
 │   └── size_calculation/  # Platform-specific
 │       ├── mod.rs
-│       ├── spotlight.rs   # macOS
-│       └── jwalk.rs       # Fallback
+│       ├── macos_du.rs    # macOS (du command)
+│       └── jwalk_calc.rs  # Fallback (jwalk)
 └── utils/
-    └── visual_encoding.rs
+    ├── mod.rs
+    ├── visual_encoding.rs
+    └── viewport.rs
 ```
 
 ---
@@ -60,7 +67,7 @@ src/
 | Phase 2: Scene Graph | ✅ Complete |
 | Phase 3: Camera | ✅ Complete |
 | Phase 4: UI | ✅ Complete |
-| Phase 5: Size Calculation | 🚧 In Progress |
+| Phase 5: Size Calculation | ✅ Complete |
 
 ---
 
