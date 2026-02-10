@@ -10,6 +10,9 @@ Celestial body spawning and scene hierarchy.
 World
 ├── Camera3d + PanOrbitCamera
 ├── AmbientLight (Resource)
+├── BackgroundStar[] (200, permanent)
+│   ├── Mesh3d (sphere, 0.03-0.12)
+│   └── MeshMaterial3d (unlit, emissive)
 ├── Star (current folder)
 │   ├── Mesh3d (sphere)
 │   ├── MeshMaterial3d (emissive)
@@ -177,6 +180,7 @@ OnExit(Viewing):
 
 | Entity | Mesh Type | Note |
 |--------|-----------|------|
+| BackgroundStar | `Sphere::new(0.03-0.12)` | Fibonacci sphere distribution, unlit |
 | Star | `Sphere::new(2.5)` | Fixed size |
 | Directory Planet | `Sphere::new(size)` | Size from encoding |
 | File Planet | Octahedron | Custom mesh, size from encoding |

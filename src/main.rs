@@ -61,7 +61,7 @@ fn main() {
         // Global systems (run in all states)
         .add_systems(Update, update_camera_viewport)
         // State: Empty
-        .add_systems(OnEnter(AppState::Empty), setup_camera)
+        .add_systems(OnEnter(AppState::Empty), (setup_camera, spawn_starfield))
         .add_systems(
             Update,
             (render_startup_ui, poll_file_dialog, check_folder_selection)

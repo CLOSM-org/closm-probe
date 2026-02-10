@@ -58,6 +58,7 @@ Idle ↔ Animating
 | `Brightness` | Modification time encoding | `value: f32` (0.25 - 1.0) |
 | `GrandchildRing` | Grandchild abstraction ring | `count: usize` |
 | `AsteroidBelt` | Overflow indicator | `count: usize` (items > 20) |
+| `BackgroundStar` | Background starfield marker | marker only |
 
 ---
 
@@ -118,6 +119,7 @@ Idle ↔ Animating
 | System | Schedule | Purpose |
 |--------|----------|---------|
 | `setup_camera` | `OnEnter(Empty)` | Initialize camera and lighting |
+| `spawn_starfield` | `OnEnter(Empty)` | Spawn background stars (200, Fibonacci sphere) |
 | `setup_ui_resources` | `Startup` | Initialize UI resources |
 | `detect_theme` | `Startup` | Detect OS theme preference |
 
@@ -159,6 +161,7 @@ Idle ↔ Animating
 World
 ├── Camera3d
 ├── AmbientLight (Resource)
+├── BackgroundStar[] (200, permanent)
 ├── Star (current folder)
 │   └── PointLight
 ├── Planet[] (children)

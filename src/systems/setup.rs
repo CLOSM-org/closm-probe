@@ -2,6 +2,7 @@
 //!
 //! Initialize camera, lighting, and theme.
 
+use crate::components::BackgroundStar;
 use crate::resources::*;
 use bevy::prelude::*;
 use bevy_panorbit_camera::PanOrbitCamera;
@@ -24,6 +25,9 @@ pub fn setup_camera(mut commands: Commands, config: Res<CameraConfig>) {
         },
     ));
 
+    // Deep dark blue background
+    commands.insert_resource(ClearColor(Color::srgb_u8(3, 3, 8)));
+
     // Ambient light for overall visibility
     commands.insert_resource(AmbientLight {
         color: Color::srgb(0.3, 0.3, 0.4),
@@ -31,6 +35,53 @@ pub fn setup_camera(mut commands: Commands, config: Res<CameraConfig>) {
     });
 
     info!("Camera and lighting setup complete");
+}
+
+/// Spawn background starfield using Fibonacci sphere distribution
+pub fn spawn_starfield(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    const STAR_COUNT: usize = 200;
+    const RADIUS: f32 = 150.0;
+    const GOLDEN_RATIO: f32 = 1.618_033_9;
+
+    for i in 0..STAR_COUNT {
+        // Fibonacci sphere distribution for even spacing
+        let theta = 2.0 * std::f32::consts::PI * (i as f32) / GOLDEN_RATIO;
+        let phi = (1.0 - 2.0 * (i as f32 + 0.5) / STAR_COUNT as f32).acos();
+
+        let x = RADIUS * phi.sin() * theta.cos();
+        let y = RADIUS * phi.sin() * theta.sin();
+        let z = RADIUS * phi.cos();
+
+        // Size variation based on index (deterministic)
+        let size = 0.03 + 0.09 * ((i * 7 + 13) % 100) as f32 / 100.0;
+
+        // Slight color variation: white to faint blue
+        let blue_shift = ((i * 11 + 3) % 100) as f32 / 100.0;
+        let r = 0.8 - blue_shift * 0.1;
+        let g = 0.82 - blue_shift * 0.05;
+        let b = 0.9 + blue_shift * 0.1;
+
+        // Brightness variation
+        let brightness = 0.3 + 0.7 * ((i * 17 + 7) % 100) as f32 / 100.0;
+
+        commands.spawn((
+            BackgroundStar,
+            Mesh3d(meshes.add(Sphere::new(size))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::srgba(r * brightness, g * brightness, b * brightness, 1.0),
+                emissive: LinearRgba::new(r * brightness * 2.0, g * brightness * 2.0, b * brightness * 2.0, 1.0),
+                unlit: true,
+                ..default()
+            })),
+            Transform::from_xyz(x, y, z),
+        ));
+    }
+
+    info!("Spawned {} background stars", STAR_COUNT);
 }
 
 /// Detect OS theme and setup theme config

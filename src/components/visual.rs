@@ -60,6 +60,10 @@ pub struct GrandchildRing {
     pub count: usize,
 }
 
+/// Background star marker for starfield
+#[derive(Component)]
+pub struct BackgroundStar;
+
 /// Asteroid belt for overflow indication
 ///
 /// When there are more than 20 items, excess items
