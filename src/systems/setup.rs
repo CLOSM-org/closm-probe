@@ -56,24 +56,43 @@ pub fn spawn_starfield(
         let y = RADIUS * phi.sin() * theta.sin();
         let z = RADIUS * phi.cos();
 
-        // Size variation based on index (deterministic)
-        let size = 0.03 + 0.09 * ((i * 7 + 13) % 100) as f32 / 100.0;
+        // ~10% are bright stars (larger, stronger glow)
+        let is_bright = (i * 13 + 5) % 10 == 0;
 
-        // Slight color variation: white to faint blue
+        // Size: bright stars 0.4-0.7, normal 0.1-0.35
+        let size = if is_bright {
+            0.4 + 0.3 * ((i * 7 + 13) % 100) as f32 / 100.0
+        } else {
+            0.1 + 0.25 * ((i * 7 + 13) % 100) as f32 / 100.0
+        };
+
+        // Color variation: white to faint blue
         let blue_shift = ((i * 11 + 3) % 100) as f32 / 100.0;
-        let r = 0.8 - blue_shift * 0.1;
-        let g = 0.82 - blue_shift * 0.05;
+        let r = 0.85 - blue_shift * 0.15;
+        let g = 0.85 - blue_shift * 0.05;
         let b = 0.9 + blue_shift * 0.1;
 
-        // Brightness variation
-        let brightness = 0.3 + 0.7 * ((i * 17 + 7) % 100) as f32 / 100.0;
+        // Brightness: bright stars 0.8-1.0, normal 0.5-1.0
+        let brightness = if is_bright {
+            0.8 + 0.2 * ((i * 17 + 7) % 100) as f32 / 100.0
+        } else {
+            0.5 + 0.5 * ((i * 17 + 7) % 100) as f32 / 100.0
+        };
+
+        // Emissive intensity: bright stars glow strongly
+        let emissive_strength = if is_bright { 12.0 } else { 5.0 };
 
         commands.spawn((
             BackgroundStar,
             Mesh3d(meshes.add(Sphere::new(size))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgba(r * brightness, g * brightness, b * brightness, 1.0),
-                emissive: LinearRgba::new(r * brightness * 2.0, g * brightness * 2.0, b * brightness * 2.0, 1.0),
+                emissive: LinearRgba::new(
+                    r * brightness * emissive_strength,
+                    g * brightness * emissive_strength,
+                    b * brightness * emissive_strength,
+                    1.0,
+                ),
                 unlit: true,
                 ..default()
             })),
