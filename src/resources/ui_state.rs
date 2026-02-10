@@ -55,3 +55,24 @@ pub struct FileDialogTask {
     /// Running async task for folder picker
     pub task: Option<Task<Option<PathBuf>>>,
 }
+
+/// Sidebar settings (user preferences + panel state)
+#[derive(Resource, Debug)]
+pub struct SidebarSettings {
+    /// Whether settings panel is expanded
+    pub settings_open: bool,
+    /// Max history entries displayed (range: 10-30)
+    pub history_limit: usize,
+    /// Show hidden files (dotfiles) in visualization
+    pub show_hidden_files: bool,
+}
+
+impl Default for SidebarSettings {
+    fn default() -> Self {
+        Self {
+            settings_open: false,
+            history_limit: 10,
+            show_hidden_files: false,
+        }
+    }
+}

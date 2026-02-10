@@ -1,6 +1,6 @@
 # UI Design
 
-egui overlay UI system with left sidebar (Claude/ChatGPT style).
+egui overlay UI system with left sidebar (spatial navigation style).
 
 ---
 
@@ -36,24 +36,29 @@ UI is rendered as a transparent overlay on top of the 3D scene.
 
 ```
 ┌─────────────────────┐
-│ CLOSM Probe         │  ← Header: App title
+│ CLOSM Probe         │  ← Identity
 │                     │
-│ [📂 Open Folder]    │  ← Primary action button
+│ [📂 Open Folder]    │  ← Primary Action
 │                     │
-├─────────────────────┤
-│ Recent              │  ← History section
-│ ├─ Documents        │     (NavigationHistory)
-│ ├─ Downloads        │
-│ └─ Projects         │
-├─────────────────────┤
-│                     │  ← Selection section
-│ Selected: file.txt  │     (when entity selected)
-│ Size: 1.2 KB        │
-│ Modified: 2h ago    │
-│ Path: /Users/...    │
+│                     │  ← Gestalt spacing (no divider)
+│ Recent              │  ← Temporal section
+│  Documents          │     (NavigationHistory)
+│   ~/Work/docs/...   │     ← Path hint (secondary color)
+│  Downloads          │
+│   ~/Users/dl/...    │
 │                     │
-├─────────────────────┤
-│ ⚙️ Settings         │  ← Footer: Settings
+│                     │  ← Gestalt spacing
+│ Selected            │  ← Context section
+│  file.txt           │     (when entity selected)
+│  Size: 1.2 KB       │
+│  Modified: 2h ago   │
+│                     │
+│                     │
+│ ⚙ Settings ──────┐ │  ← System (bottom, L1 expand)
+│ │ Theme: [Dark]   │ │
+│ │ Limit: [10]     │ │
+│ │ Hidden: [ ]     │ │
+│ └─────────────────┘ │
 └─────────────────────┘
 ```
 
@@ -65,15 +70,36 @@ UI is rendered as a transparent overlay on top of the 3D scene.
 | Width | 260px (fixed) |
 | Always visible | Yes (no toggle needed) |
 | Background | Dark: `#1a1a2e` / Light: `#f5f5f5` |
+| Section grouping | Gestalt spacing (no explicit dividers) |
 
 ### Sections
 
 | Section | Content | Visibility |
 |---------|---------|------------|
-| Header | App title, Open Folder button | Always |
-| History | Recent folders (max 10, clickable) | Always |
-| Selection | Selected celestial details | When selected |
-| Settings | Theme toggle, other options | Always |
+| Identity | App title | Always |
+| Primary Action | Open Folder button (accent, full-width) | Always |
+| Temporal | Recent folders with path hints (SidebarSettings.history_limit) | Always |
+| Context | Selected celestial details | When selected |
+| System | Settings panel (collapsible) | Always (click to expand) |
+
+### History Entry Format
+
+```
+ Documents                          ← Folder name (primary color)
+  ~/Work/Projects/docs/...          ← Shortened path (secondary color, smaller)
+```
+
+Path hint uses `shorten_path()`: replaces home directory with `~`, truncates middle segments with `...` if too long.
+
+### Settings Panel (Progressive Disclosure L1)
+
+Collapsed by default. Click gear icon to expand/collapse.
+
+| Setting | Widget | Resource Field |
+|---------|--------|----------------|
+| Theme | Dark/Light toggle | `ThemeConfig.dark_mode` |
+| Display limit | Slider (10-30) | `SidebarSettings.history_limit` |
+| Show hidden files | Checkbox | `SidebarSettings.show_hidden_files` |
 
 ---
 
@@ -204,10 +230,22 @@ egui::Area::new(id)
 |----------|---------|
 | `UiState` | Track hover, selection state |
 | `UiLayout` | Dimensions (sidebar width, padding) |
+| `SidebarSettings` | Settings panel state and user preferences |
 | `PendingFolderSelection` | Async dialog result |
 | `FileDialogTask` | Running async dialog task |
 | `NavigationHistory` | Recent folders list |
 | `ThemeConfig` | Colors and dark/light mode |
+
+### SidebarSettings Resource
+
+```rust
+#[derive(Resource)]
+pub struct SidebarSettings {
+    pub settings_open: bool,     // Panel expanded (default: false)
+    pub history_limit: usize,    // Display limit (default: 10, range: 10-30)
+    pub show_hidden_files: bool, // Include dotfiles (default: false)
+}
+```
 
 ---
 

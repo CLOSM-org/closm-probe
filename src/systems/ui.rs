@@ -1,6 +1,6 @@
 //! UI systems
 //!
-//! egui-based overlay UI with left sidebar (Claude/ChatGPT style).
+//! egui-based overlay UI with left sidebar (spatial navigation style).
 
 use crate::components::*;
 use crate::events::*;
@@ -10,6 +10,7 @@ use bevy::prelude::*;
 use bevy::tasks::IoTaskPool;
 use bevy_egui::{egui, EguiContexts};
 use futures_lite::future;
+use std::path::Path;
 
 /// Embedded font: Noto Sans JP (supports Japanese, CJK)
 /// Download from: https://fonts.google.com/noto/specimen/Noto+Sans+JP
@@ -68,11 +69,12 @@ pub fn render_startup_ui(
     layout: Res<UiLayout>,
     history: Res<NavigationHistory>,
     mut pending_folder: ResMut<PendingFolderSelection>,
+    mut sidebar_settings: ResMut<SidebarSettings>,
+    mut theme_config: ResMut<ThemeConfig>,
 ) {
     let ctx = contexts.ctx_mut();
     let task_running = dialog_task.task.is_some();
 
-    // Left sidebar (semi-transparent, no border)
     egui::SidePanel::left("sidebar")
         .resizable(false)
         .exact_width(layout.sidebar_width)
@@ -84,7 +86,7 @@ pub fn render_startup_ui(
         .show(ctx, |ui| {
             ui.add_space(16.0);
 
-            // Header section
+            // Identity section
             ui.horizontal(|ui| {
                 ui.add_space(16.0);
                 ui.heading(egui::RichText::new("CLOSM Probe").color(egui::Color32::WHITE));
@@ -101,7 +103,7 @@ pub fn render_startup_ui(
 
             ui.add_space(24.0);
 
-            // Open Folder button
+            // Primary Action
             ui.horizontal(|ui| {
                 ui.add_space(12.0);
                 let button = egui::Button::new(
@@ -131,24 +133,14 @@ pub fn render_startup_ui(
                 });
             }
 
-            ui.add_space(24.0);
-            ui.horizontal(|ui| {
-                ui.add_space(16.0);
-                ui.separator();
-            });
+            // Gestalt spacing between sections
+            ui.add_space(28.0);
 
-            // History section
-            ui.add_space(16.0);
-            ui.horizontal(|ui| {
-                ui.add_space(16.0);
-                ui.label(
-                    egui::RichText::new("Recent")
-                        .color(egui::Color32::from_rgb(120, 120, 140))
-                        .small(),
-                );
-            });
+            // Temporal section (Recent)
+            section_label(ui, "Recent");
             ui.add_space(8.0);
 
+            let limit = sidebar_settings.history_limit;
             if history.entries.is_empty() {
                 ui.horizontal(|ui| {
                     ui.add_space(24.0);
@@ -159,44 +151,43 @@ pub fn render_startup_ui(
                     );
                 });
             } else {
-                for entry in history.entries.iter().take(8) {
+                for entry in history.entries.iter().take(limit) {
                     let folder_name = entry
                         .file_name()
                         .map(|n| n.to_string_lossy().to_string())
                         .unwrap_or_else(|| "/".to_string());
+                    let path_hint = shorten_path(entry);
 
                     ui.horizontal(|ui| {
                         ui.add_space(16.0);
-                        if ui
-                            .link(
-                                egui::RichText::new(format!(" {}", folder_name))
-                                    .color(egui::Color32::from_rgb(200, 200, 220)),
-                            )
-                            .clicked()
-                        {
-                            pending_folder.path = Some(entry.clone());
-                        }
+                        ui.vertical(|ui| {
+                            if ui
+                                .link(
+                                    egui::RichText::new(format!(" {}", folder_name))
+                                        .color(egui::Color32::from_rgb(200, 200, 220)),
+                                )
+                                .clicked()
+                            {
+                                pending_folder.path = Some(entry.clone());
+                            }
+                            ui.horizontal(|ui| {
+                                ui.add_space(4.0);
+                                ui.label(
+                                    egui::RichText::new(&path_hint)
+                                        .color(egui::Color32::from_rgb(90, 90, 110))
+                                        .small(),
+                                );
+                            });
+                        });
                     });
+                    ui.add_space(2.0);
                 }
             }
 
-            // Spacer to push settings to bottom
+            // Settings at bottom (Progressive Disclosure L1)
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 ui.add_space(16.0);
-                ui.horizontal(|ui| {
-                    ui.add_space(16.0);
-                    ui.separator();
-                });
-                ui.add_space(8.0);
-                ui.horizontal(|ui| {
-                    ui.add_space(16.0);
-                    if ui
-                        .button(egui::RichText::new(" Settings").color(egui::Color32::GRAY))
-                        .clicked()
-                    {
-                        // TODO: Settings panel
-                    }
-                });
+                render_settings_panel(ui, &mut sidebar_settings, &mut theme_config);
                 ui.add_space(8.0);
             });
         });
@@ -305,6 +296,8 @@ pub fn render_sidebar(
     current_dir: Res<CurrentDirectory>,
     mut dialog_task: ResMut<FileDialogTask>,
     mut navigate_events: EventWriter<NavigateToEvent>,
+    mut sidebar_settings: ResMut<SidebarSettings>,
+    mut theme_config: ResMut<ThemeConfig>,
 ) {
     let ctx = contexts.ctx_mut();
     let task_running = dialog_task.task.is_some();
@@ -320,7 +313,7 @@ pub fn render_sidebar(
         .show(ctx, |ui| {
             ui.add_space(16.0);
 
-            // Header
+            // Identity
             ui.horizontal(|ui| {
                 ui.add_space(16.0);
                 ui.heading(egui::RichText::new("CLOSM Probe").color(egui::Color32::WHITE));
@@ -328,7 +321,7 @@ pub fn render_sidebar(
 
             ui.add_space(16.0);
 
-            // Open Folder button
+            // Primary Action
             ui.horizontal(|ui| {
                 ui.add_space(12.0);
                 let button = egui::Button::new(
@@ -377,21 +370,14 @@ pub fn render_sidebar(
                 });
             }
 
-            ui.add_space(16.0);
-            add_separator(ui, layout.sidebar_width);
+            // Gestalt spacing between sections
+            ui.add_space(24.0);
 
-            // History section
-            ui.add_space(12.0);
-            ui.horizontal(|ui| {
-                ui.add_space(16.0);
-                ui.label(
-                    egui::RichText::new("Recent")
-                        .color(egui::Color32::from_rgb(120, 120, 140))
-                        .small(),
-                );
-            });
+            // Temporal section (Recent)
+            section_label(ui, "Recent");
             ui.add_space(8.0);
 
+            let limit = sidebar_settings.history_limit;
             if history.entries.is_empty() {
                 ui.horizontal(|ui| {
                     ui.add_space(24.0);
@@ -402,40 +388,45 @@ pub fn render_sidebar(
                     );
                 });
             } else {
-                for entry in history.entries.iter().take(8) {
+                for entry in history.entries.iter().take(limit) {
                     let folder_name = entry
                         .file_name()
                         .map(|n| n.to_string_lossy().to_string())
                         .unwrap_or_else(|| "/".to_string());
+                    let path_hint = shorten_path(entry);
 
                     ui.horizontal(|ui| {
                         ui.add_space(16.0);
-                        if ui
-                            .link(
-                                egui::RichText::new(format!(" {}", folder_name))
-                                    .color(egui::Color32::from_rgb(200, 200, 220)),
-                            )
-                            .clicked()
-                        {
-                            navigate_events.send(NavigateToEvent { path: entry.clone() });
-                        }
+                        ui.vertical(|ui| {
+                            if ui
+                                .link(
+                                    egui::RichText::new(format!(" {}", folder_name))
+                                        .color(egui::Color32::from_rgb(200, 200, 220)),
+                                )
+                                .clicked()
+                            {
+                                navigate_events
+                                    .send(NavigateToEvent { path: entry.clone() });
+                            }
+                            ui.horizontal(|ui| {
+                                ui.add_space(4.0);
+                                ui.label(
+                                    egui::RichText::new(&path_hint)
+                                        .color(egui::Color32::from_rgb(90, 90, 110))
+                                        .small(),
+                                );
+                            });
+                        });
                     });
+                    ui.add_space(2.0);
                 }
             }
 
-            ui.add_space(16.0);
-            add_separator(ui, layout.sidebar_width);
+            // Gestalt spacing
+            ui.add_space(24.0);
 
-            // Selection section
-            ui.add_space(12.0);
-            ui.horizontal(|ui| {
-                ui.add_space(16.0);
-                ui.label(
-                    egui::RichText::new("Selected")
-                        .color(egui::Color32::from_rgb(120, 120, 140))
-                        .small(),
-                );
-            });
+            // Context section (Selected)
+            section_label(ui, "Selected");
             ui.add_space(8.0);
 
             if let Some(entity) = ui_state.selected_entity {
@@ -470,31 +461,141 @@ pub fn render_sidebar(
                 });
             }
 
-            // Settings at bottom
+            // Settings at bottom (Progressive Disclosure L1)
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 ui.add_space(16.0);
-                add_separator(ui, layout.sidebar_width);
-                ui.add_space(8.0);
-                ui.horizontal(|ui| {
-                    ui.add_space(16.0);
-                    if ui
-                        .button(egui::RichText::new(" Settings").color(egui::Color32::GRAY))
-                        .clicked()
-                    {
-                        // TODO: Settings panel
-                    }
-                });
+                render_settings_panel(ui, &mut sidebar_settings, &mut theme_config);
                 ui.add_space(8.0);
             });
         });
 }
 
-/// Helper to add separator line
-fn add_separator(ui: &mut egui::Ui, width: f32) {
+/// Render the collapsible settings panel (Progressive Disclosure L1)
+fn render_settings_panel(
+    ui: &mut egui::Ui,
+    sidebar_settings: &mut ResMut<SidebarSettings>,
+    theme_config: &mut ResMut<ThemeConfig>,
+) {
+    if sidebar_settings.settings_open {
+        // Settings content (rendered bottom-up, so in reverse order)
+        ui.add_space(12.0);
+
+        // Hidden files toggle
+        ui.horizontal(|ui| {
+            ui.add_space(24.0);
+            ui.label(
+                egui::RichText::new("Hidden files")
+                    .color(egui::Color32::from_rgb(160, 160, 180))
+                    .small(),
+            );
+            if ui
+                .checkbox(&mut sidebar_settings.show_hidden_files, "")
+                .changed()
+            {
+                // Setting will be picked up by spawning systems
+            }
+        });
+
+        ui.add_space(4.0);
+
+        // Display limit slider
+        ui.horizontal(|ui| {
+            ui.add_space(24.0);
+            ui.label(
+                egui::RichText::new("History limit")
+                    .color(egui::Color32::from_rgb(160, 160, 180))
+                    .small(),
+            );
+        });
+        ui.horizontal(|ui| {
+            ui.add_space(24.0);
+            let mut limit = sidebar_settings.history_limit as f32;
+            let slider = egui::Slider::new(&mut limit, 10.0..=30.0)
+                .step_by(1.0)
+                .show_value(true);
+            if ui.add(slider).changed() {
+                sidebar_settings.history_limit = limit as usize;
+            }
+        });
+
+        ui.add_space(4.0);
+
+        // Theme toggle
+        ui.horizontal(|ui| {
+            ui.add_space(24.0);
+            ui.label(
+                egui::RichText::new("Theme")
+                    .color(egui::Color32::from_rgb(160, 160, 180))
+                    .small(),
+            );
+            let label = if theme_config.dark_mode {
+                "Dark"
+            } else {
+                "Light"
+            };
+            if ui
+                .button(egui::RichText::new(label).color(egui::Color32::from_rgb(200, 200, 220)))
+                .clicked()
+            {
+                theme_config.dark_mode = !theme_config.dark_mode;
+                theme_config.apply_mode();
+            }
+        });
+
+        ui.add_space(8.0);
+    }
+
+    // Settings toggle button
     ui.horizontal(|ui| {
         ui.add_space(16.0);
-        ui.add(egui::Separator::default().horizontal().spacing(0.0));
-        ui.add_space(width - 32.0);
+        let icon = if sidebar_settings.settings_open {
+            "▼ Settings"
+        } else {
+            "▶ Settings"
+        };
+        if ui
+            .button(egui::RichText::new(icon).color(egui::Color32::GRAY))
+            .clicked()
+        {
+            sidebar_settings.settings_open = !sidebar_settings.settings_open;
+        }
+    });
+}
+
+/// Shorten a path for display as a hint (e.g., ~/Work/Projects/...)
+fn shorten_path(path: &Path) -> String {
+    let display = path.to_string_lossy();
+
+    // Replace home directory with ~
+    let home = std::env::var("HOME").unwrap_or_default();
+    let shortened = if !home.is_empty() && display.starts_with(&home) {
+        format!("~{}", &display[home.len()..])
+    } else {
+        display.to_string()
+    };
+
+    // Truncate if too long (keep first and last segments)
+    if shortened.len() > 35 {
+        let parts: Vec<&str> = shortened.split('/').filter(|s| !s.is_empty()).collect();
+        if parts.len() > 3 {
+            format!("{}/.../{}", parts[0], parts[parts.len() - 1])
+        } else {
+            shortened
+        }
+    } else {
+        shortened
+    }
+}
+
+/// Render a section label with Gestalt spacing
+fn section_label(ui: &mut egui::Ui, text: &str) {
+    ui.horizontal(|ui| {
+        ui.add_space(16.0);
+        ui.label(
+            egui::RichText::new(text)
+                .color(egui::Color32::from_rgb(120, 120, 140))
+                .small(),
+        );
     });
 }
 

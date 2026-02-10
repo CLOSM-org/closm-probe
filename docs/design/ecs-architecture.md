@@ -85,6 +85,7 @@ Idle ↔ Animating
 |----------|-------------|--------|
 | `UiState` | UI interaction state | `hovered_entity: Option<Entity>`, `selected_entity: Option<Entity>` |
 | `UiLayout` | Layout dimensions | `sidebar_width: f32` (260.0), `padding: f32` (16.0) |
+| `SidebarSettings` | Settings panel state | `settings_open: bool`, `history_limit: usize` (10), `show_hidden_files: bool` |
 | `PendingFolderSelection` | Async dialog result | `path: Option<PathBuf>` |
 | `FileDialogTask` | Running async dialog | `task: Option<Task<Option<PathBuf>>>` |
 

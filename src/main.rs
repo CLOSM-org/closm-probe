@@ -39,6 +39,7 @@ fn main() {
         .init_resource::<DirectoryCache>()
         .init_resource::<UiState>()
         .init_resource::<UiLayout>()
+        .init_resource::<SidebarSettings>()
         .init_resource::<VisualConfig>()
         .init_resource::<CameraConfig>()
         .init_resource::<PendingFolderSelection>()

@@ -14,8 +14,8 @@
 │  Side    │           (breadcrumb overlay)     │
 │  bar     │                                    │
 │          │           3D Universe              │
-│  [Chat   │                                    │
-│   style] │         tooltip [file.txt]         │
+│ [Spatial │                                    │
+│    nav]  │         tooltip [file.txt]         │
 │          │                                    │
 │  ──────  │                                    │
 │  Settings│                                    │
@@ -24,7 +24,7 @@
 
 | Element | Specification |
 |---------|---------------|
-| Sidebar | **Left side**, always visible, Claude/ChatGPT style, semi-transparent |
+| Sidebar | **Left side**, always visible, spatial navigation style, semi-transparent |
 | 3D View | Main area (right of sidebar). **Star always centered in this area** |
 | Breadcrumb | Overlay inside 3D view (semi-transparent) |
 | Tooltip | Shows hovered celestial details |
@@ -37,41 +37,51 @@
 
 ---
 
-## Sidebar Design (Claude/ChatGPT Style)
+## Sidebar Design (Spatial Navigation Style)
+
+Design philosophy: **Spatial navigation** (VS Code Explorer / Figma Pages pattern), not conversation management.
 
 ```
 ┌─────────────────────┐
-│ CLOSM Probe         │  ← App title
+│ CLOSM Probe         │  ← Identity
 │                     │
 │ ┌─────────────────┐ │
-│ │ 📂 Open Folder  │ │  ← Primary action button
+│ │ 📂 Open Folder  │ │  ← Primary Action (Fitts's Law)
 │ └─────────────────┘ │
 │                     │
-│ Recent              │  ← Section label
-│ ├─ Documents        │  ← Recent folder history
-│ ├─ Downloads        │
-│ └─ Projects         │
+│  Recent             │  ← Temporal section
+│  Documents          │    (Gestalt spacing, no dividers)
+│    ~/Work/docs/...  │    ← Path hint (secondary color)
+│  Downloads          │
+│    ~/Users/dl/...   │
+│                     │    ← Spacing = visual group separator
+│  Selected           │  ← Context section
+│  file.txt           │
+│  Size: 1.2 KB       │
+│  Modified: 2h ago   │
 │                     │
-│ ─────────────────── │  ← Divider
 │                     │
-│ Selected: file.txt  │  ← Selection info (when selected)
-│ Size: 1.2 KB        │
-│ Modified: 2h ago    │
-│                     │
-│ ─────────────────── │
-│                     │
-│ ⚙️ Settings         │  ← Settings at bottom
+│  ⚙ Settings ─────┐ │  ← System (bottom, L1 expand)
+│  │ Theme: [Dark]  │ │
+│  │ Limit: [10]    │ │
+│  │ Hidden: [ ]    │ │
+│  └────────────────┘ │
 └─────────────────────┘
 ```
 
 ### Sidebar Sections
 
-| Section | Content |
-|---------|---------|
-| Header | App title + Open Folder button |
-| History | Recent folders (max 10, clickable) |
-| Selection | Details of selected celestial body |
-| Footer | Settings toggle |
+| Section | Content | Visibility |
+|---------|---------|------------|
+| Identity | App title | Always |
+| Primary Action | Open Folder button (accent, full-width) | Always |
+| Temporal | Recent folders with path hints | Always |
+| Context | Selected celestial details (name, size, modified) | When selected |
+| System | Settings panel (theme, display limit, hidden files) | Click to expand (L1) |
+
+### Section Grouping
+
+Uses **Gestalt spacing** (not explicit dividers): subtle spacing and background differentiation create visual groups without separator lines.
 
 ### Sidebar Dimensions
 
@@ -80,6 +90,22 @@
 | Width | 260px (fixed) |
 | Background | Dark theme: `#1a1a2e` / Light: `#f5f5f5` |
 | Padding | 16px |
+
+### History Entries
+
+| Property | Value |
+|----------|-------|
+| Default display count | 10 |
+| Configurable range | 10 - 30 (via Settings) |
+| Entry format | Folder name + shortened path hint (secondary color) |
+
+### Settings Panel
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| Theme | Toggle (Dark/Light) | OS-detected | Manual dark/light switch |
+| Display limit | Slider (10-30) | 10 | Max history entries shown |
+| Show hidden files | Toggle | Off | Include dotfiles in visualization |
 
 ---
 
@@ -103,7 +129,8 @@
 
 ## Theme
 
-- OS-aware (follows macOS dark/light setting)
+- OS-aware at startup (follows macOS dark/light setting)
+- Manual toggle available in Settings panel
 - Dark mode default for "space" feel
 
 ---
