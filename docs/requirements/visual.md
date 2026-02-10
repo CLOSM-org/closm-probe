@@ -10,11 +10,22 @@
 
 | 対象 | スケール | 範囲 |
 |------|---------|------|
-| ディレクトリ | log10 + volume-proportional | 0.5 〜 2.0 |
-| ファイル | log10 + volume-proportional | 0.3 〜 1.8 |
+| ディレクトリ | band + volume-proportional | 0.5 〜 2.0 |
+| ファイル | band + volume-proportional | 0.3 〜 1.8 |
 | 恒星（現在フォルダ） | 固定 | 2.5 |
 
-**Volume-proportional mapping**: `radius = (min³ + normalized * (max³ - min³))^(1/3)` — visual volume (∝ r³) scales linearly with log-normalized byte size. Directory meshes use unit sphere (`Sphere::new(1.0)`) with `transform.scale` for sizing.
+### Band Normalization
+
+Magnitude bands with log-linear interpolation within each band:
+
+| Band | Byte Range | Normalized Range |
+|------|-----------|-----------------|
+| < KB | 1 B - 1 KB | 0.00 - 0.10 |
+| KB | 1 KB - 1 MB | 0.10 - 0.35 |
+| MB | 1 MB - 1 GB | 0.35 - 0.70 |
+| GB | 1 GB - 1 TB | 0.70 - 1.00 |
+
+**Volume-proportional mapping**: `radius = (min³ + normalized * (max³ - min³))^(1/3)` — visual volume (∝ r³) scales linearly with normalized size. Directory meshes use unit sphere (`Sphere::new(1.0)`) with `transform.scale` for sizing.
 
 ---
 

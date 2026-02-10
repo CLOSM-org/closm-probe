@@ -10,12 +10,9 @@ use std::time::SystemTime;
 
 /// Calculate celestial body size from file size
 ///
-/// Uses log10 scale normalized to reasonable visual range.
+/// Uses band-based normalization (KB/MB/GB/TB bands) with volume-proportional radius.
 pub fn calculate_size(size_bytes: u64, is_directory: bool, config: &VisualConfig) -> f32 {
-    // Add 1 to handle zero-size files
-    let log_size = (size_bytes as f64 + 1.0).log10() as f32;
-    // Normalize: log10(1TB) ≈ 12
-    let normalized = (log_size / 12.0).clamp(0.0, 1.0);
+    let normalized = band_normalize(size_bytes);
 
     // Volume-proportional mapping: radius = (min³ + t*(max³ - min³))^(1/3)
     // This ensures visual volume (∝ r³) scales linearly with normalized size.
@@ -27,6 +24,36 @@ pub fn calculate_size(size_bytes: u64, is_directory: bool, config: &VisualConfig
     let min3 = min * min * min;
     let max3 = max * max * max;
     (min3 + normalized * (max3 - min3)).cbrt()
+}
+
+/// Normalize byte size using magnitude bands for perceptual differentiation.
+///
+/// Each band (KB, MB, GB, TB) gets a proportional slice of [0, 1].
+/// Log-linear interpolation within each band preserves relative differences.
+fn band_normalize(size_bytes: u64) -> f32 {
+    const BANDS: &[(u64, f32)] = &[
+        (1, 0.00),                    // < 1 KB
+        (1_000, 0.10),                // 1 KB
+        (1_000_000, 0.35),            // 1 MB
+        (1_000_000_000, 0.70),        // 1 GB
+        (1_000_000_000_000, 1.00),    // 1 TB
+    ];
+
+    let bytes = size_bytes.max(1);
+
+    for i in 1..BANDS.len() {
+        if bytes < BANDS[i].0 {
+            let (low_bytes, low_norm) = BANDS[i - 1];
+            let (high_bytes, high_norm) = BANDS[i];
+            let log_low = (low_bytes as f64).log10();
+            let log_high = (high_bytes as f64).log10();
+            let log_val = (bytes as f64).log10();
+            let t = ((log_val - log_low) / (log_high - log_low)) as f32;
+            return low_norm + t * (high_norm - low_norm);
+        }
+    }
+
+    1.0 // >= 1 TB
 }
 
 /// Calculate brightness from modification time
