@@ -17,11 +17,16 @@ pub fn calculate_size(size_bytes: u64, is_directory: bool, config: &VisualConfig
     // Normalize: log10(1TB) ≈ 12
     let normalized = (log_size / 12.0).clamp(0.0, 1.0);
 
-    if is_directory {
-        config.dir_size_min + normalized * (config.dir_size_max - config.dir_size_min)
+    // Volume-proportional mapping: radius = (min³ + t*(max³ - min³))^(1/3)
+    // This ensures visual volume (∝ r³) scales linearly with normalized size.
+    let (min, max) = if is_directory {
+        (config.dir_size_min, config.dir_size_max)
     } else {
-        config.file_size_min + normalized * (config.file_size_max - config.file_size_min)
-    }
+        (config.file_size_min, config.file_size_max)
+    };
+    let min3 = min * min * min;
+    let max3 = max * max * max;
+    (min3 + normalized * (max3 - min3)).cbrt()
 }
 
 /// Calculate brightness from modification time
@@ -62,7 +67,7 @@ pub fn create_star_material(materials: &mut Assets<StandardMaterial>) -> Handle<
 
     materials.add(StandardMaterial {
         base_color: star_color,
-        emissive: LinearRgba::from(star_color) * 5.0,
+        emissive: LinearRgba::from(star_color) * 8.0,
         ..default()
     })
 }

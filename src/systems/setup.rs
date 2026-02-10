@@ -4,6 +4,8 @@
 
 use crate::components::BackgroundStar;
 use crate::resources::*;
+use bevy::core_pipeline::bloom::Bloom;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
@@ -11,9 +13,15 @@ use bevy_panorbit_camera::PanOrbitCamera;
 
 /// Setup camera and basic lighting
 pub fn setup_camera(mut commands: Commands, config: Res<CameraConfig>) {
-    // Spawn camera with orbit controls
+    // Spawn camera with orbit controls, HDR + Bloom for star glow
     commands.spawn((
         Camera3d::default(),
+        Camera {
+            hdr: true,
+            ..default()
+        },
+        Tonemapping::TonyMcMapface,
+        Bloom::NATURAL,
         Transform::from_xyz(0.0, 10.0, 20.0).looking_at(Vec3::ZERO, Vec3::Y),
         PanOrbitCamera {
             radius: Some(20.0),

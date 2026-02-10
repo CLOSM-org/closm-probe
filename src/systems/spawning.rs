@@ -87,9 +87,9 @@ pub fn spawn_celestials(
                 None => (entry.size_bytes, false),
             };
 
-            // Directory planet (sphere)
+            // Directory planet (unit sphere, sized via transform.scale)
             let size = calculate_size(effective_size_bytes, true, &config);
-            let mesh = create_sphere_mesh(size, &mut meshes);
+            let mesh = create_sphere_mesh(1.0, &mut meshes);
             let material = create_celestial_material(
                 FileType::Directory,
                 brightness.value,
@@ -103,6 +103,7 @@ pub fn spawn_celestials(
                 entry.modified,
                 brightness,
                 position,
+                size,
                 mesh,
                 material,
             );
@@ -267,7 +268,7 @@ pub fn handle_respawn_celestials(
             };
 
             let size = calculate_size(effective_size_bytes, true, &config);
-            let mesh = create_sphere_mesh(size, &mut meshes);
+            let mesh = create_sphere_mesh(1.0, &mut meshes);
             let material =
                 create_celestial_material(FileType::Directory, brightness.value, &mut materials);
 
@@ -278,6 +279,7 @@ pub fn handle_respawn_celestials(
                 entry.modified,
                 brightness,
                 position,
+                size,
                 mesh,
                 material,
             );

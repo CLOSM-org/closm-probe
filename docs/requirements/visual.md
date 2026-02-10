@@ -10,9 +10,11 @@
 
 | 対象 | スケール | 範囲 |
 |------|---------|------|
-| ディレクトリ | log10 | 0.5 〜 2.0 |
-| ファイル | log10 | 0.3 〜 1.8 |
+| ディレクトリ | log10 + volume-proportional | 0.5 〜 2.0 |
+| ファイル | log10 + volume-proportional | 0.3 〜 1.8 |
 | 恒星（現在フォルダ） | 固定 | 2.5 |
+
+**Volume-proportional mapping**: `radius = (min³ + normalized * (max³ - min³))^(1/3)` — visual volume (∝ r³) scales linearly with log-normalized byte size. Directory meshes use unit sphere (`Sphere::new(1.0)`) with `transform.scale` for sizing.
 
 ---
 
@@ -57,6 +59,17 @@
 | ClearColor | `srgb_u8(3, 3, 8)`（極暗紺色） |
 | インタラクション | なし（Clickable非付与） |
 | ライフサイクル | Empty進入時に生成、永続（cleanup対象外） |
+
+### Bloom（ポストプロセス）
+
+| 項目 | 値 |
+|------|-----|
+| HDR | `true`（カメラ） |
+| Bloom | `Bloom::NATURAL`（intensity 0.15） |
+| Tonemapping | `TonyMcMapface` |
+| 恒星 emissive | `color × 8.0`（強いハロー） |
+| 惑星 emissive | `color × brightness × 2.0`（微光） |
+| 背景星空 | Unlit → Bloom影響なし |
 
 ---
 

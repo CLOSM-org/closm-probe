@@ -69,6 +69,7 @@ impl DirectoryPlanetBundle {
         modified: SystemTime,
         brightness: Brightness,
         position: Vec3,
+        scale: f32,
         mesh: Handle<Mesh>,
         material: Handle<StandardMaterial>,
     ) -> Self {
@@ -86,7 +87,7 @@ impl DirectoryPlanetBundle {
             drillable: Drillable,
             mesh: Mesh3d(mesh),
             material: MeshMaterial3d(material),
-            transform: Transform::from_translation(position),
+            transform: Transform::from_translation(position).with_scale(Vec3::splat(scale)),
         }
     }
 }
