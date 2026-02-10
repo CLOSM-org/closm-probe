@@ -5,6 +5,8 @@
 use crate::components::BackgroundStar;
 use crate::resources::*;
 use bevy::prelude::*;
+use bevy::render::mesh::{Indices, PrimitiveTopology};
+use bevy::render::render_asset::RenderAssetUsages;
 use bevy_panorbit_camera::PanOrbitCamera;
 
 /// Setup camera and basic lighting
@@ -37,70 +39,119 @@ pub fn setup_camera(mut commands: Commands, config: Res<CameraConfig>) {
     info!("Camera and lighting setup complete");
 }
 
-/// Spawn background starfield using Fibonacci sphere distribution
+/// Spawn background starfield as a single mesh with per-vertex colors
 pub fn spawn_starfield(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    const STAR_COUNT: usize = 200;
+    const STAR_COUNT: usize = 300;
     const RADIUS: f32 = 150.0;
-    const GOLDEN_RATIO: f32 = 1.618_033_9;
+
+    let mut positions: Vec<[f32; 3]> = Vec::with_capacity(STAR_COUNT * 4);
+    let mut normals: Vec<[f32; 3]> = Vec::with_capacity(STAR_COUNT * 4);
+    let mut colors: Vec<[f32; 4]> = Vec::with_capacity(STAR_COUNT * 4);
+    let mut indices: Vec<u32> = Vec::with_capacity(STAR_COUNT * 6);
 
     for i in 0..STAR_COUNT {
-        // Fibonacci sphere distribution for even spacing
-        let theta = 2.0 * std::f32::consts::PI * (i as f32) / GOLDEN_RATIO;
-        let phi = (1.0 - 2.0 * (i as f32 + 0.5) / STAR_COUNT as f32).acos();
+        let seed = i as u32;
 
-        let x = RADIUS * phi.sin() * theta.cos();
-        let y = RADIUS * phi.sin() * theta.sin();
-        let z = RADIUS * phi.cos();
+        // Random spherical distribution (natural, non-uniform look)
+        let theta = std::f32::consts::TAU * hash_f32(seed, 0);
+        let cos_phi = 1.0 - 2.0 * hash_f32(seed, 1);
+        let sin_phi = (1.0 - cos_phi * cos_phi).sqrt();
 
-        // ~10% are bright stars (larger, stronger glow)
-        let is_bright = (i * 13 + 5) % 10 == 0;
+        let center = Vec3::new(
+            RADIUS * sin_phi * theta.cos(),
+            RADIUS * sin_phi * theta.sin(),
+            RADIUS * cos_phi,
+        );
 
-        // Size: bright stars 0.4-0.7, normal 0.1-0.35
+        // ~10% bright stars
+        let is_bright = hash_u32(seed, 2) % 10 == 0;
+
         let size = if is_bright {
-            0.4 + 0.3 * ((i * 7 + 13) % 100) as f32 / 100.0
+            0.5 + 0.5 * hash_f32(seed, 3)
         } else {
-            0.1 + 0.25 * ((i * 7 + 13) % 100) as f32 / 100.0
+            0.15 + 0.25 * hash_f32(seed, 3)
         };
 
-        // Color variation: white to faint blue
-        let blue_shift = ((i * 11 + 3) % 100) as f32 / 100.0;
-        let r = 0.85 - blue_shift * 0.15;
-        let g = 0.85 - blue_shift * 0.05;
-        let b = 0.9 + blue_shift * 0.1;
+        // Color: white to faint blue/warm
+        let tint = hash_f32(seed, 4);
+        let (r, g, b) = if tint < 0.6 {
+            // White-blue (majority)
+            (0.85 - tint * 0.2, 0.85 - tint * 0.05, 0.95)
+        } else if tint < 0.85 {
+            // Warm white
+            (0.95, 0.88, 0.8)
+        } else {
+            // Faint yellow
+            (0.95, 0.92, 0.7)
+        };
 
-        // Brightness: bright stars 0.8-1.0, normal 0.5-1.0
         let brightness = if is_bright {
-            0.8 + 0.2 * ((i * 17 + 7) % 100) as f32 / 100.0
+            0.8 + 0.2 * hash_f32(seed, 5)
         } else {
-            0.5 + 0.5 * ((i * 17 + 7) % 100) as f32 / 100.0
+            0.35 + 0.5 * hash_f32(seed, 5)
         };
 
-        // Emissive intensity: bright stars glow strongly
-        let emissive_strength = if is_bright { 12.0 } else { 5.0 };
+        let color = [r * brightness, g * brightness, b * brightness, 1.0];
 
-        commands.spawn((
-            BackgroundStar,
-            Mesh3d(meshes.add(Sphere::new(size))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::srgba(r * brightness, g * brightness, b * brightness, 1.0),
-                emissive: LinearRgba::new(
-                    r * brightness * emissive_strength,
-                    g * brightness * emissive_strength,
-                    b * brightness * emissive_strength,
-                    1.0,
-                ),
-                unlit: true,
-                ..default()
-            })),
-            Transform::from_xyz(x, y, z),
-        ));
+        // Quad facing origin
+        let normal = center.normalize();
+        let up = if normal.y.abs() > 0.99 { Vec3::X } else { Vec3::Y };
+        let tangent = normal.cross(up).normalize();
+        let bitangent = normal.cross(tangent).normalize();
+        let half = size * 0.5;
+
+        let base = (i as u32) * 4;
+        for &offset in &[
+            -tangent - bitangent,
+            tangent - bitangent,
+            tangent + bitangent,
+            -tangent + bitangent,
+        ] {
+            let pos = center + offset * half;
+            positions.push(pos.into());
+            normals.push(normal.into());
+            colors.push(color);
+        }
+        indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
     }
 
-    info!("Spawned {} background stars", STAR_COUNT);
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+    mesh.insert_indices(Indices::U32(indices));
+
+    commands.spawn((
+        BackgroundStar,
+        Mesh3d(meshes.add(mesh)),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            unlit: true,
+            base_color: Color::WHITE,
+            double_sided: true,
+            cull_mode: None,
+            ..default()
+        })),
+        Transform::default(),
+    ));
+
+    info!("Spawned starfield ({STAR_COUNT} stars, single mesh)");
+}
+
+/// Deterministic hash → u32
+fn hash_u32(seed: u32, offset: u32) -> u32 {
+    let mut h = seed.wrapping_mul(2654435761).wrapping_add(offset.wrapping_mul(2246822519));
+    h = (h ^ (h >> 16)).wrapping_mul(0x45d9f3b);
+    h = (h ^ (h >> 16)).wrapping_mul(0x45d9f3b);
+    h ^ (h >> 16)
+}
+
+/// Deterministic hash → f32 in [0.0, 1.0)
+fn hash_f32(seed: u32, offset: u32) -> f32 {
+    hash_u32(seed, offset) as f32 / u32::MAX as f32
 }
 
 /// Initialize persistent cache and load persisted navigation history
