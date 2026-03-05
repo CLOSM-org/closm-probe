@@ -32,8 +32,6 @@ pub struct UiState {
 pub struct UiLayout {
     /// Sidebar width in pixels
     pub sidebar_width: f32,
-    /// Breadcrumb bar height
-    pub breadcrumb_height: f32,
     /// Padding for UI elements
     pub padding: f32,
 }
@@ -42,7 +40,6 @@ impl Default for UiLayout {
     fn default() -> Self {
         Self {
             sidebar_width: 260.0, // Claude/ChatGPT style
-            breadcrumb_height: 40.0,
             padding: 16.0,
         }
     }
