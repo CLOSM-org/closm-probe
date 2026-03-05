@@ -394,7 +394,7 @@ fn draw_settings_page(
                         {
                             theme_config.dark_mode = !theme_config.dark_mode;
                             theme_config.apply_mode();
-                            if let Some(ref cache) = persistent_cache {
+                            if let Some(cache) = persistent_cache.as_deref() {
                                 cache.write_setting(
                                     "dark_mode",
                                     if theme_config.dark_mode { "true" } else { "false" },
@@ -429,7 +429,7 @@ fn draw_settings_page(
                             .show_value(true);
                         if ui.add(slider).changed() {
                             sidebar_settings.history_limit = limit as usize;
-                            if let Some(ref cache) = persistent_cache {
+                            if let Some(cache) = persistent_cache.as_deref() {
                                 cache.write_setting(
                                     "history_limit",
                                     &sidebar_settings.history_limit.to_string(),
@@ -450,7 +450,7 @@ fn draw_settings_page(
                             )
                             .changed()
                         {
-                            if let Some(ref cache) = persistent_cache {
+                            if let Some(cache) = persistent_cache.as_deref() {
                                 cache.write_setting(
                                     "show_hidden_files",
                                     if sidebar_settings.show_hidden_files {
@@ -478,10 +478,12 @@ pub fn render_startup_ui(
     mut dialog_task: ResMut<FileDialogTask>,
     layout: Res<UiLayout>,
     history: Res<NavigationHistory>,
+    mut pinned: ResMut<PinnedFolders>,
     mut pending_folder: ResMut<PendingFolderSelection>,
     mut sidebar_settings: ResMut<SidebarSettings>,
     mut ui_state: ResMut<UiState>,
     mut theme_config: ResMut<ThemeConfig>,
+    persistent_cache: Option<Res<PersistentCache>>,
 ) {
     let ctx = contexts.ctx_mut();
     let task_running = dialog_task.task.is_some();
@@ -504,14 +506,52 @@ pub fn render_startup_ui(
                 .max_height(scroll_h)
                 .auto_shrink(false)
                 .show(ui, |ui| {
+                    // Pinned section
+                    section_label(ui, "Pinned");
+                    ui.add_space(8.0);
+
+                    let mut unpin_path = None;
+                    let mut clicked_path = None;
+                    render_pinned_entries(
+                        ui,
+                        &pinned,
+                        |entry| clicked_path = Some(entry.clone()),
+                        |entry| unpin_path = Some(entry.clone()),
+                    );
+                    if let Some(path) = unpin_path {
+                        pinned.entries.retain(|p| p != &path);
+                        if let Some(cache) = persistent_cache.as_ref() {
+                            cache.write_pinned(&path, false);
+                        }
+                    }
+                    if let Some(path) = clicked_path {
+                        pending_folder.path = Some(path);
+                        ui_state.main_view = MainView::Universe;
+                    }
+
+                    ui.add_space(12.0);
                     section_label(ui, "Recent");
                     ui.add_space(8.0);
 
                     let limit = sidebar_settings.history_limit;
+                    let mut pin_path = None;
                     let mut clicked_path = None;
-                    render_history_entries(ui, &history, limit, |entry| {
-                        clicked_path = Some(entry.clone());
-                    });
+                    render_history_entries(
+                        ui,
+                        &history,
+                        &pinned,
+                        limit,
+                        |entry| clicked_path = Some(entry.clone()),
+                        |entry| pin_path = Some(entry.clone()),
+                    );
+                    if let Some(path) = pin_path {
+                        if !pinned.entries.contains(&path) {
+                            pinned.entries.insert(0, path.clone());
+                            if let Some(cache) = persistent_cache.as_ref() {
+                                cache.write_pinned(&path, true);
+                            }
+                        }
+                    }
                     if let Some(path) = clicked_path {
                         pending_folder.path = Some(path);
                         ui_state.main_view = MainView::Universe;
@@ -524,7 +564,7 @@ pub fn render_startup_ui(
 
     // ── Main Content (same frame, after sidebar) ──
     if ui_state.main_view == MainView::Settings {
-        draw_settings_page(ctx, &mut sidebar_settings, &mut theme_config);
+        draw_settings_page(ctx, &mut sidebar_settings, &mut theme_config, &persistent_cache);
     }
 }
 
@@ -535,11 +575,13 @@ pub fn render_sidebar(
     celestials: Query<&CelestialBody>,
     layout: Res<UiLayout>,
     history: Res<NavigationHistory>,
+    mut pinned: ResMut<PinnedFolders>,
     current_dir: Res<CurrentDirectory>,
     mut dialog_task: ResMut<FileDialogTask>,
     mut navigate_events: EventWriter<NavigateToEvent>,
     mut sidebar_settings: ResMut<SidebarSettings>,
     mut theme_config: ResMut<ThemeConfig>,
+    persistent_cache: Option<Res<PersistentCache>>,
 ) {
     let ctx = contexts.ctx_mut();
     let task_running = dialog_task.task.is_some();
@@ -587,14 +629,52 @@ pub fn render_sidebar(
                 .max_height(scroll_h)
                 .auto_shrink(false)
                 .show(ui, |ui| {
+                    // Pinned section
+                    section_label(ui, "Pinned");
+                    ui.add_space(8.0);
+
+                    let mut unpin_path = None;
+                    let mut clicked_path = None;
+                    render_pinned_entries(
+                        ui,
+                        &pinned,
+                        |entry| clicked_path = Some(entry.clone()),
+                        |entry| unpin_path = Some(entry.clone()),
+                    );
+                    if let Some(path) = unpin_path {
+                        pinned.entries.retain(|p| p != &path);
+                        if let Some(cache) = persistent_cache.as_ref() {
+                            cache.write_pinned(&path, false);
+                        }
+                    }
+                    if let Some(path) = clicked_path {
+                        navigate_events.send(NavigateToEvent { path });
+                        ui_state.main_view = MainView::Universe;
+                    }
+
+                    ui.add_space(12.0);
                     section_label(ui, "Recent");
                     ui.add_space(8.0);
 
                     let limit = sidebar_settings.history_limit;
+                    let mut pin_path = None;
                     let mut clicked_path = None;
-                    render_history_entries(ui, &history, limit, |entry| {
-                        clicked_path = Some(entry.clone());
-                    });
+                    render_history_entries(
+                        ui,
+                        &history,
+                        &pinned,
+                        limit,
+                        |entry| clicked_path = Some(entry.clone()),
+                        |entry| pin_path = Some(entry.clone()),
+                    );
+                    if let Some(path) = pin_path {
+                        if !pinned.entries.contains(&path) {
+                            pinned.entries.insert(0, path.clone());
+                            if let Some(cache) = persistent_cache.as_ref() {
+                                cache.write_pinned(&path, true);
+                            }
+                        }
+                    }
                     if let Some(path) = clicked_path {
                         navigate_events.send(NavigateToEvent { path });
                         ui_state.main_view = MainView::Universe;
@@ -647,7 +727,7 @@ pub fn render_sidebar(
 
     // ── Main Content (same frame, after sidebar) ──
     if ui_state.main_view == MainView::Settings {
-        draw_settings_page(ctx, &mut sidebar_settings, &mut theme_config);
+        draw_settings_page(ctx, &mut sidebar_settings, &mut theme_config, &persistent_cache);
     }
 }
 
@@ -685,7 +765,7 @@ pub fn check_folder_selection(
 
         history.push(path.clone());
 
-        if let Some(ref cache) = persistent_cache {
+        if let Some(cache) = persistent_cache.as_ref() {
             cache.write_history(&history.entries);
         }
 
