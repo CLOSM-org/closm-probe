@@ -59,7 +59,7 @@ fn main() {
         .add_event::<ViewResetEvent>()
         .add_event::<RespawnCelestialsEvent>()
         // Startup systems
-        .add_systems(Startup, (setup_theme, setup_fonts, initialize_persistent_cache))
+        .add_systems(Startup, (setup_theme, setup_fonts, initialize_persistent_cache.after(setup_theme)))
         // Global systems (run in all states)
         .add_systems(Update, (update_camera_viewport, sync_main_view_camera, handle_keyboard))
         // State: Empty
