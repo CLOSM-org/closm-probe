@@ -21,7 +21,10 @@ pub fn setup_camera(mut commands: Commands, config: Res<CameraConfig>) {
             ..default()
         },
         Tonemapping::TonyMcMapface,
-        Bloom::NATURAL,
+        Bloom {
+            intensity: 0.15,
+            ..Bloom::NATURAL
+        },
         Transform::from_xyz(0.0, 10.0, 20.0).looking_at(Vec3::ZERO, Vec3::Y),
         PanOrbitCamera {
             radius: Some(20.0),

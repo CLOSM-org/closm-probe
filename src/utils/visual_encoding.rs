@@ -111,7 +111,7 @@ pub fn create_asteroid_belt_material(
 ) -> Handle<StandardMaterial> {
     materials.add(StandardMaterial {
         base_color: Color::srgba(0.55, 0.45, 0.35, 0.45),
-        emissive: LinearRgba::new(0.15, 0.12, 0.08, 1.0),
+        emissive: LinearRgba::new(0.3, 0.24, 0.16, 1.0),
         alpha_mode: AlphaMode::Blend,
         ..default()
     })
@@ -140,7 +140,7 @@ pub fn create_grandchild_ring_material(
 
     materials.add(StandardMaterial {
         base_color: ring_color,
-        emissive: LinearRgba::new(0.1, 0.15, 0.3, 1.0),
+        emissive: LinearRgba::new(0.2, 0.3, 0.6, 1.0),
         alpha_mode: AlphaMode::Blend,
         double_sided: true,
         cull_mode: None,
