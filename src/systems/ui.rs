@@ -118,13 +118,84 @@ fn render_open_folder_button(
     }
 }
 
-fn render_history_entries<F>(
+/// Render pinned folder entries. Returns Some(path) if a folder was clicked.
+fn render_pinned_entries<F, G>(
     ui: &mut egui::Ui,
-    history: &NavigationHistory,
-    limit: usize,
+    pinned: &PinnedFolders,
     mut on_click: F,
+    mut on_unpin: G,
 ) where
     F: FnMut(&std::path::PathBuf),
+    G: FnMut(&std::path::PathBuf),
+{
+    if pinned.entries.is_empty() {
+        ui.horizontal(|ui| {
+            ui.add_space(24.0);
+            ui.label(
+                egui::RichText::new("No pinned folders")
+                    .color(egui::Color32::from_rgb(100, 100, 120))
+                    .italics(),
+            );
+        });
+    } else {
+        for entry in pinned.entries.iter() {
+            let folder_name = entry
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "/".to_string());
+            let path_hint = shorten_path(entry);
+
+            ui.horizontal(|ui| {
+                ui.add_space(16.0);
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        if ui
+                            .link(
+                                egui::RichText::new(format!(" {}", folder_name))
+                                    .color(egui::Color32::from_rgb(200, 200, 220)),
+                            )
+                            .clicked()
+                        {
+                            on_click(entry);
+                        }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui
+                                .small_button(
+                                    egui::RichText::new("x")
+                                        .color(egui::Color32::from_rgb(150, 100, 100)),
+                                )
+                                .on_hover_text("Unpin")
+                                .clicked()
+                            {
+                                on_unpin(entry);
+                            }
+                        });
+                    });
+                    ui.horizontal(|ui| {
+                        ui.add_space(4.0);
+                        ui.label(
+                            egui::RichText::new(&path_hint)
+                                .color(egui::Color32::from_rgb(90, 90, 110))
+                                .small(),
+                        );
+                    });
+                });
+            });
+            ui.add_space(2.0);
+        }
+    }
+}
+
+fn render_history_entries<F, G>(
+    ui: &mut egui::Ui,
+    history: &NavigationHistory,
+    pinned: &PinnedFolders,
+    limit: usize,
+    mut on_click: F,
+    mut on_pin: G,
+) where
+    F: FnMut(&std::path::PathBuf),
+    G: FnMut(&std::path::PathBuf),
 {
     if history.entries.is_empty() {
         ui.horizontal(|ui| {
@@ -142,19 +213,39 @@ fn render_history_entries<F>(
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| "/".to_string());
             let path_hint = shorten_path(entry);
+            let is_pinned = pinned.entries.contains(entry);
 
             ui.horizontal(|ui| {
                 ui.add_space(16.0);
                 ui.vertical(|ui| {
-                    if ui
-                        .link(
-                            egui::RichText::new(format!(" {}", folder_name))
-                                .color(egui::Color32::from_rgb(200, 200, 220)),
-                        )
-                        .clicked()
-                    {
-                        on_click(entry);
-                    }
+                    ui.horizontal(|ui| {
+                        if ui
+                            .link(
+                                egui::RichText::new(format!(" {}", folder_name))
+                                    .color(egui::Color32::from_rgb(200, 200, 220)),
+                            )
+                            .clicked()
+                        {
+                            on_click(entry);
+                        }
+                        if !is_pinned {
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui
+                                        .small_button(
+                                            egui::RichText::new("pin")
+                                                .color(egui::Color32::from_rgb(120, 160, 200)),
+                                        )
+                                        .on_hover_text("Pin this folder")
+                                        .clicked()
+                                    {
+                                        on_pin(entry);
+                                    }
+                                },
+                            );
+                        }
+                    });
                     ui.horizontal(|ui| {
                         ui.add_space(4.0);
                         ui.label(
@@ -246,6 +337,7 @@ fn draw_settings_page(
     ctx: &egui::Context,
     sidebar_settings: &mut SidebarSettings,
     theme_config: &mut ThemeConfig,
+    persistent_cache: &Option<Res<PersistentCache>>,
 ) {
     egui::CentralPanel::default()
         .frame(
@@ -302,6 +394,12 @@ fn draw_settings_page(
                         {
                             theme_config.dark_mode = !theme_config.dark_mode;
                             theme_config.apply_mode();
+                            if let Some(ref cache) = persistent_cache {
+                                cache.write_setting(
+                                    "dark_mode",
+                                    if theme_config.dark_mode { "true" } else { "false" },
+                                );
+                            }
                         }
                     });
 
@@ -331,6 +429,12 @@ fn draw_settings_page(
                             .show_value(true);
                         if ui.add(slider).changed() {
                             sidebar_settings.history_limit = limit as usize;
+                            if let Some(ref cache) = persistent_cache {
+                                cache.write_setting(
+                                    "history_limit",
+                                    &sidebar_settings.history_limit.to_string(),
+                                );
+                            }
                         }
                     });
 
@@ -338,11 +442,25 @@ fn draw_settings_page(
 
                     ui.horizontal(|ui| {
                         ui.add_space(16.0);
-                        ui.checkbox(
-                            &mut sidebar_settings.show_hidden_files,
-                            egui::RichText::new("Show hidden files")
-                                .color(egui::Color32::from_rgb(200, 200, 220)),
-                        );
+                        if ui
+                            .checkbox(
+                                &mut sidebar_settings.show_hidden_files,
+                                egui::RichText::new("Show hidden files")
+                                    .color(egui::Color32::from_rgb(200, 200, 220)),
+                            )
+                            .changed()
+                        {
+                            if let Some(ref cache) = persistent_cache {
+                                cache.write_setting(
+                                    "show_hidden_files",
+                                    if sidebar_settings.show_hidden_files {
+                                        "true"
+                                    } else {
+                                        "false"
+                                    },
+                                );
+                            }
+                        }
                     });
                 });
             });
