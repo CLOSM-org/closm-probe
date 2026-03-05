@@ -97,6 +97,57 @@ pub fn create_star_material(materials: &mut Assets<StandardMaterial>) -> Handle<
     })
 }
 
+/// Create torus mesh for asteroid belt
+///
+/// Belt orbits at radius beyond the last planet ring.
+pub fn create_asteroid_belt_mesh(meshes: &mut Assets<Mesh>) -> Handle<Mesh> {
+    // Major radius: just beyond planet orbit, minor radius: thin band
+    meshes.add(Torus::new(ORBIT_RADIUS + 2.5, 0.4))
+}
+
+/// Create semi-transparent rocky material for asteroid belt
+pub fn create_asteroid_belt_material(
+    materials: &mut Assets<StandardMaterial>,
+) -> Handle<StandardMaterial> {
+    materials.add(StandardMaterial {
+        base_color: Color::srgba(0.55, 0.45, 0.35, 0.45),
+        emissive: LinearRgba::new(0.15, 0.12, 0.08, 1.0),
+        alpha_mode: AlphaMode::Blend,
+        ..default()
+    })
+}
+
+/// Create a flat ring mesh for grandchild indicator
+///
+/// Ring is sized relative to the planet it orbits (unit sphere scaled externally).
+/// Major radius and tube radius are in local space — the planet's Transform.scale
+/// will uniformly scale the ring along with the planet.
+pub fn create_grandchild_ring_mesh(meshes: &mut Assets<Mesh>) -> Handle<Mesh> {
+    // Major radius 1.6, tube radius 0.06 — thin Saturn-like ring in local space
+    meshes.add(Torus::new(1.6, 0.06))
+}
+
+/// Create semi-transparent material for grandchild ring
+///
+/// Opacity reflects grandchild presence (capped at 0.7 for aesthetics).
+pub fn create_grandchild_ring_material(
+    count: usize,
+    materials: &mut Assets<StandardMaterial>,
+) -> Handle<StandardMaterial> {
+    // Opacity scales with count up to a cap
+    let alpha = (0.25 + 0.05 * count.min(9) as f32).min(0.70);
+    let ring_color = Color::srgba(0.6, 0.75, 1.0, alpha);
+
+    materials.add(StandardMaterial {
+        base_color: ring_color,
+        emissive: LinearRgba::new(0.1, 0.15, 0.3, 1.0),
+        alpha_mode: AlphaMode::Blend,
+        double_sided: true,
+        cull_mode: None,
+        ..default()
+    })
+}
+
 /// Calculate orbital position for a planet
 ///
 /// Distributes planets evenly around the star.

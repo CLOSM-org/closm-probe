@@ -61,6 +61,13 @@ impl Breadcrumb {
     }
 }
 
+/// Pinned folders for quick access
+#[derive(Resource, Debug, Default)]
+pub struct PinnedFolders {
+    /// Pinned folder paths (most recently pinned first)
+    pub entries: Vec<PathBuf>,
+}
+
 /// Navigation history for recent folders and back/forward navigation
 #[derive(Resource, Debug)]
 pub struct NavigationHistory {

@@ -125,8 +125,19 @@ pub fn spawn_celestials(
             // Check for grandchildren and add ring if any
             let grandchild_count = count_directory_items(&entry.path);
             if grandchild_count > 0 {
+                let ring_mesh = create_grandchild_ring_mesh(&mut meshes);
+                let ring_material =
+                    create_grandchild_ring_material(grandchild_count, &mut materials);
                 commands.entity(planet_entity).insert(GrandchildRing {
                     count: grandchild_count,
+                });
+                commands.entity(planet_entity).with_children(|parent| {
+                    parent.spawn((
+                        Mesh3d(ring_mesh),
+                        MeshMaterial3d(ring_material),
+                        // Tilt ring slightly off the equatorial plane for visibility
+                        Transform::from_rotation(Quat::from_rotation_x(0.3)),
+                    ));
                 });
             }
         } else {
@@ -159,7 +170,14 @@ pub fn spawn_celestials(
 
     // Spawn asteroid belt for overflow items
     if overflow_count > 0 {
-        commands.spawn((AsteroidBelt { count: overflow_count }, Transform::default()));
+        let belt_mesh = create_asteroid_belt_mesh(&mut meshes);
+        let belt_material = create_asteroid_belt_material(&mut materials);
+        commands.spawn((
+            AsteroidBelt { count: overflow_count },
+            Mesh3d(belt_mesh),
+            MeshMaterial3d(belt_material),
+            Transform::default(),
+        ));
         info!("Overflow: {} items in asteroid belt", overflow_count);
     }
 
@@ -298,8 +316,18 @@ pub fn handle_respawn_celestials(
 
             let grandchild_count = count_directory_items(&entry.path);
             if grandchild_count > 0 {
+                let ring_mesh = create_grandchild_ring_mesh(&mut meshes);
+                let ring_material =
+                    create_grandchild_ring_material(grandchild_count, &mut materials);
                 commands.entity(planet_entity).insert(GrandchildRing {
                     count: grandchild_count,
+                });
+                commands.entity(planet_entity).with_children(|parent| {
+                    parent.spawn((
+                        Mesh3d(ring_mesh),
+                        MeshMaterial3d(ring_material),
+                        Transform::from_rotation(Quat::from_rotation_x(0.3)),
+                    ));
                 });
             }
         } else {
@@ -330,7 +358,14 @@ pub fn handle_respawn_celestials(
     }
 
     if overflow_count > 0 {
-        commands.spawn((AsteroidBelt { count: overflow_count }, Transform::default()));
+        let belt_mesh = create_asteroid_belt_mesh(&mut meshes);
+        let belt_material = create_asteroid_belt_material(&mut materials);
+        commands.spawn((
+            AsteroidBelt { count: overflow_count },
+            Mesh3d(belt_mesh),
+            MeshMaterial3d(belt_material),
+            Transform::default(),
+        ));
     }
 
     info!(

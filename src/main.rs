@@ -36,6 +36,7 @@ fn main() {
         .init_resource::<CurrentDirectory>()
         .init_resource::<Breadcrumb>()
         .init_resource::<NavigationHistory>()
+        .init_resource::<PinnedFolders>()
         .init_resource::<DirectoryCache>()
         .init_resource::<UiState>()
         .init_resource::<UiLayout>()

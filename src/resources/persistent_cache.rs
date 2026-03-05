@@ -16,6 +16,15 @@ const SIZE_TABLE: TableDefinition<&str, (u64, u64)> = TableDefinition::new("size
 /// Table: index (u64) -> path (string), 0 = newest
 const HISTORY_TABLE: TableDefinition<u64, &str> = TableDefinition::new("history");
 
+/// Table: path (string) -> pinned_timestamp (u64)
+const PINNED_TABLE: TableDefinition<&str, u64> = TableDefinition::new("pinned");
+
+/// Table: setting_name (string) -> setting_value (string)
+const SETTINGS_TABLE: TableDefinition<&str, &str> = TableDefinition::new("settings");
+
+/// Eviction threshold: 30 days in seconds
+const EVICTION_TTL_SECS: u64 = 30 * 24 * 60 * 60;
+
 /// Commands sent to the background writer thread
 enum CacheWriteCommand {
     WriteSize {
@@ -25,6 +34,14 @@ enum CacheWriteCommand {
     },
     WriteHistory {
         entries: Vec<String>,
+    },
+    WritePinned {
+        path: String,
+        pinned: bool,
+    },
+    WriteSetting {
+        key: String,
+        value: String,
     },
 }
 
@@ -75,6 +92,14 @@ impl PersistentCache {
                 warn!("Failed to create history table");
                 return None;
             }
+            if write_txn.open_table(PINNED_TABLE).is_err() {
+                warn!("Failed to create pinned table");
+                return None;
+            }
+            if write_txn.open_table(SETTINGS_TABLE).is_err() {
+                warn!("Failed to create settings table");
+                return None;
+            }
             if let Err(e) = write_txn.commit() {
                 warn!("Failed to commit table creation: {}", e);
                 return None;
@@ -122,6 +147,30 @@ impl PersistentCache {
                                     for (i, entry) in entries.iter().enumerate() {
                                         let _ = table.insert(i as u64, entry.as_str());
                                     }
+                                }
+                                let _ = write_txn.commit();
+                            }
+                        }
+                        CacheWriteCommand::WritePinned { path, pinned } => {
+                            if let Ok(write_txn) = writer_db.begin_write() {
+                                if let Ok(mut table) = write_txn.open_table(PINNED_TABLE) {
+                                    if pinned {
+                                        let now = SystemTime::now()
+                                            .duration_since(UNIX_EPOCH)
+                                            .map(|d| d.as_secs())
+                                            .unwrap_or(0);
+                                        let _ = table.insert(path.as_str(), now);
+                                    } else {
+                                        let _ = table.remove(path.as_str());
+                                    }
+                                }
+                                let _ = write_txn.commit();
+                            }
+                        }
+                        CacheWriteCommand::WriteSetting { key, value } => {
+                            if let Ok(write_txn) = writer_db.begin_write() {
+                                if let Ok(mut table) = write_txn.open_table(SETTINGS_TABLE) {
+                                    let _ = table.insert(key.as_str(), value.as_str());
                                 }
                                 let _ = write_txn.commit();
                             }
@@ -220,6 +269,115 @@ impl PersistentCache {
 
         if let Err(TrySendError::Full(_)) = self.write_sender.try_send(cmd) {
             warn!("Persistent cache write channel full, dropping history write");
+        }
+    }
+
+    /// Load pinned folders from persistent storage (synchronous, startup only)
+    pub fn load_pinned(&self) -> Vec<PathBuf> {
+        let read_txn = match self.db.begin_read() {
+            Ok(txn) => txn,
+            Err(_) => return Vec::new(),
+        };
+        let table = match read_txn.open_table(PINNED_TABLE) {
+            Ok(t) => t,
+            Err(_) => return Vec::new(),
+        };
+
+        let mut entries: Vec<(u64, PathBuf)> = Vec::new();
+        if let Ok(iter) = table.iter() {
+            for item in iter {
+                if let Ok((key, value)) = item {
+                    entries.push((value.value(), PathBuf::from(key.value())));
+                }
+            }
+        }
+
+        // Sort by pinned timestamp descending (most recently pinned first)
+        entries.sort_by(|a, b| b.0.cmp(&a.0));
+        entries.into_iter().map(|(_, path)| path).collect()
+    }
+
+    /// Queue pin/unpin write (non-blocking, drops if channel full)
+    pub fn write_pinned(&self, path: &Path, pinned: bool) {
+        let cmd = CacheWriteCommand::WritePinned {
+            path: path.to_string_lossy().into_owned(),
+            pinned,
+        };
+
+        if let Err(TrySendError::Full(_)) = self.write_sender.try_send(cmd) {
+            warn!("Persistent cache write channel full, dropping pin write");
+        }
+    }
+
+    /// Load a setting from persistent storage (synchronous, startup only)
+    pub fn load_setting(&self, key: &str) -> Option<String> {
+        let read_txn = self.db.begin_read().ok()?;
+        let table = read_txn.open_table(SETTINGS_TABLE).ok()?;
+        let entry = table.get(key).ok()??;
+        Some(entry.value().to_owned())
+    }
+
+    /// Queue a setting write (non-blocking, drops if channel full)
+    pub fn write_setting(&self, key: &str, value: &str) {
+        let cmd = CacheWriteCommand::WriteSetting {
+            key: key.to_owned(),
+            value: value.to_owned(),
+        };
+
+        if let Err(TrySendError::Full(_)) = self.write_sender.try_send(cmd) {
+            warn!("Persistent cache write channel full, dropping setting write");
+        }
+    }
+
+    /// Evict size cache entries older than EVICTION_TTL_SECS.
+    /// Runs synchronously (call from background thread at startup).
+    pub fn evict_old_entries(&self) {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+
+        let write_txn = match self.db.begin_write() {
+            Ok(txn) => txn,
+            Err(e) => {
+                warn!("Cache eviction: failed to begin write transaction: {}", e);
+                return;
+            }
+        };
+
+        let mut table = match write_txn.open_table(SIZE_TABLE) {
+            Ok(t) => t,
+            Err(e) => {
+                warn!("Cache eviction: failed to open size table: {}", e);
+                return;
+            }
+        };
+
+        // Collect stale keys
+        let stale_keys: Vec<String> = table
+            .iter()
+            .ok()
+            .map(|iter| {
+                iter.filter_map(|r| r.ok())
+                    .filter(|(_, v)| {
+                        let (_, timestamp) = v.value();
+                        now.saturating_sub(timestamp) > EVICTION_TTL_SECS
+                    })
+                    .map(|(k, _)| k.value().to_owned())
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let eviction_count = stale_keys.len();
+        for key in stale_keys {
+            let _ = table.remove(key.as_str());
+        }
+
+        drop(table);
+        let _ = write_txn.commit();
+
+        if eviction_count > 0 {
+            info!("Cache eviction: removed {} stale entries", eviction_count);
         }
     }
 

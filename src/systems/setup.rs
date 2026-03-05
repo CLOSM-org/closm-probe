@@ -162,10 +162,13 @@ fn hash_f32(seed: u32, offset: u32) -> f32 {
     hash_u32(seed, offset) as f32 / u32::MAX as f32
 }
 
-/// Initialize persistent cache and load persisted navigation history
+/// Initialize persistent cache, load persisted state, and run cache eviction
 pub fn initialize_persistent_cache(
     mut commands: Commands,
     mut history: ResMut<NavigationHistory>,
+    mut pinned: ResMut<PinnedFolders>,
+    mut sidebar_settings: ResMut<SidebarSettings>,
+    mut theme_config: ResMut<ThemeConfig>,
 ) {
     if let Some(cache) = PersistentCache::new(3600) {
         // Load persisted history entries (filter to paths that still exist)
@@ -184,6 +187,43 @@ pub fn initialize_persistent_cache(
                 history.entries.len()
             );
         }
+
+        // Load pinned folders
+        let persisted_pinned = cache.load_pinned();
+        for entry in persisted_pinned {
+            if entry.exists() {
+                pinned.entries.push(entry);
+            }
+        }
+        if !pinned.entries.is_empty() {
+            info!("Loaded {} pinned folders", pinned.entries.len());
+        }
+
+        // Load settings
+        if let Some(val) = cache.load_setting("history_limit") {
+            if let Ok(n) = val.parse::<usize>() {
+                sidebar_settings.history_limit = n.clamp(10, 30);
+            }
+        }
+        if let Some(val) = cache.load_setting("show_hidden_files") {
+            sidebar_settings.show_hidden_files = val == "true";
+        }
+        if let Some(val) = cache.load_setting("dark_mode") {
+            let dark = val == "true";
+            theme_config.dark_mode = dark;
+            theme_config.apply_mode();
+        }
+
+        // Run cache eviction in background thread
+        let eviction_cache = PersistentCache::new(3600);
+        std::thread::Builder::new()
+            .name("cache-eviction".into())
+            .spawn(move || {
+                if let Some(c) = eviction_cache {
+                    c.evict_old_entries();
+                }
+            })
+            .ok();
 
         commands.insert_resource(cache);
     } else {
